@@ -1,5 +1,5 @@
 import type { DayOfWeek } from "../../types/habit";
-import { WEEKDAY_ABBR_PT } from "../../utils/weekdays";
+import { WEEKDAY_LETTERS, WEEKDAYS_PT } from "../../utils/weekdays";
 import styles from "./DaySelector.module.css";
 
 interface DaySelectorProps {
@@ -7,11 +7,6 @@ interface DaySelectorProps {
   onChange: (days: DayOfWeek[]) => void;
   error?: string;
 }
-
-const DAY_LABELS: { value: DayOfWeek; label: string }[] = WEEKDAY_ABBR_PT.map((label, value) => ({
-  value: value as DayOfWeek,
-  label,
-}));
 
 const ALL_DAYS: DayOfWeek[] = [0, 1, 2, 3, 4, 5, 6];
 
@@ -31,33 +26,37 @@ export function DaySelector({ selectedDays, onChange, error }: DaySelectorProps)
   }
 
   return (
-    <div>
-      <div className={styles.container}>
-        {DAY_LABELS.map(({ value, label }) => {
+    <div className={styles.field}>
+      <div className={styles.header}>
+        <span className={styles.label}>Dias</span>
+        <button
+          type="button"
+          className={styles.allButton}
+          onClick={toggleAll}
+          aria-pressed={allSelected}
+        >
+          {allSelected ? "Limpar" : "Todos os dias"}
+        </button>
+      </div>
+
+      <div className={styles.chips}>
+        {ALL_DAYS.map((value) => {
           const isSelected = selectedDays.includes(value);
           return (
             <button
               key={value}
               type="button"
-              className={`${styles.dayButton} ${isSelected ? styles.selected : ""}`}
+              className={`${styles.chip} ${isSelected ? styles.selected : ""}`}
               onClick={() => handleToggle(value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  handleToggle(value);
-                }
-              }}
               aria-pressed={isSelected}
-              aria-label={label}
+              aria-label={WEEKDAYS_PT[value]}
             >
-              {label}
+              {WEEKDAY_LETTERS[value]}
             </button>
           );
         })}
       </div>
-      <button type="button" className={styles.allButton} onClick={toggleAll} aria-pressed={allSelected}>
-        {allSelected ? "Limpar" : "Todos os dias"}
-      </button>
+
       {error && <p className={styles.error}>{error}</p>}
     </div>
   );

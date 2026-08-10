@@ -1,25 +1,15 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xl);
   max-width: 960px;
   margin: 0 auto;
-  padding: var(--spacing-2xl);
+  padding-bottom: var(--spacing-2xl);
 }
 
-.sectionHeader {
+.actionsRow {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-base);
-}
-
-.sectionTitle {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-tertiary);
+  justify-content: flex-end;
+  padding: var(--spacing-md) 14px 0;
 }
 
 .newButton {
@@ -59,8 +49,14 @@
   border-radius: var(--radius-md);
 }
 
+.page > .muted,
+.page > .error {
+  margin: var(--spacing-lg) var(--spacing-base);
+}
+
 .empty {
   text-align: center;
+  margin: var(--spacing-2xl) var(--spacing-base);
   padding: var(--spacing-3xl) var(--spacing-xl);
   background: var(--color-bg-card);
   border: 1px dashed var(--color-border);
@@ -91,11 +87,11 @@
 }
 
 @media (max-width: 768px) {
-  .page {
-    padding: var(--spacing-base);
+  /* No celular o "+" central da barra inferior cuida de adicionar. */
+  .actionsRow {
+    display: none;
   }
 
-  /* No celular o "+" central da barra inferior cuida de adicionar. */
   .newButton {
     display: none;
   }

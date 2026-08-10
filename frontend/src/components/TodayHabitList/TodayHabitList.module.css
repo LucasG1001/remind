@@ -1,0 +1,198 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-md) 14px 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  animation: cardEnter var(--transition-base);
+  transition: background var(--transition-fast), opacity var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.rowDone {
+  background: var(--color-bg-done);
+}
+
+.dragging,
+.dragging:hover {
+  opacity: 0.6;
+  transform: scale(1.02);
+  cursor: grabbing;
+}
+
+.iconButton {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent-light);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.rowDone .iconButton {
+  background: var(--color-success-subtle);
+  color: var(--color-success);
+}
+
+.icon {
+  width: 22px;
+  height: 22px;
+  stroke-width: 1.7;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: 0;
+  text-align: left;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.name {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowDone .name {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+  text-decoration: line-through;
+}
+
+.subtitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+}
+
+.dashes {
+  display: flex;
+  gap: 3px;
+}
+
+.dash {
+  display: block;
+  width: 14px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-border);
+  transition: background var(--transition-fast);
+}
+
+.dashFilled {
+  background: var(--color-accent);
+}
+
+.check {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-border);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.rowDone .check {
+  background: var(--color-success);
+  border-color: transparent;
+  color: var(--color-on-success);
+}
+
+.checkIcon {
+  width: 17px;
+  height: 17px;
+  stroke-width: 3;
+}
+
+.doneHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: 18px var(--spacing-md) var(--spacing-sm);
+}
+
+.doneTitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-text-tertiary);
+}
+
+.doneToggle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  padding: var(--spacing-xs) 0;
+  transition: color var(--transition-fast);
+}
+
+.doneToggle:hover {
+  color: var(--color-text-secondary);
+}
+
+.empty {
+  padding: var(--spacing-lg) 14px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+@media (hover: hover) {
+  .row:hover {
+    background: var(--color-bg-hover);
+  }
+
+  .rowDone:hover {
+    background: var(--color-bg-done);
+  }
+
+  .iconButton:hover {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+}

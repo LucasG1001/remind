@@ -8,6 +8,7 @@
   --color-bg-hover: #1e1e30;
   --color-bg-overlay: rgba(0, 0, 0, 0.6);
   --color-bg-drawer: #0e0e16;
+  --color-bg-done: #0e1216;
 
   --color-surface: #1c1c2e;
   --color-surface-hover: #252540;
@@ -27,6 +28,7 @@
 
   --color-success: #10b981;
   --color-success-subtle: rgba(16, 185, 129, 0.12);
+  --color-on-success: #06281e;
   --color-warning: #f59e0b;
   --color-warning-subtle: rgba(245, 158, 11, 0.12);
   --color-error: #ef4444;
@@ -41,6 +43,7 @@
 
   --color-on-accent: #ffffff;
   --color-accent-light: #a78bfa;
+  --color-accent-lighter: #c4b5fd;
 
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 

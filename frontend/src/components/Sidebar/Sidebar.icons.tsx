@@ -110,6 +110,31 @@ export function FlameIcon({ className }: IconProps) {
   );
 }
 
+export function CheckMarkIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M20 6 9 17l-5-5" />
+    </Icon>
+  );
+}
+
+export function CloseIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M18 6 6 18" />
+      <path d="M6 6l12 12" />
+    </Icon>
+  );
+}
+
+export function MinusIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M5 12h14" />
+    </Icon>
+  );
+}
+
 export function TrashIcon({ className }: IconProps) {
   return (
     <Icon className={className}>

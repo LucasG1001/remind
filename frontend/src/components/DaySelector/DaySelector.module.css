@@ -1,60 +1,78 @@
-.container {
+.field {
   display: flex;
-  gap: 4px;
+  flex-direction: column;
+  gap: var(--spacing-sm);
 }
 
-.dayButton {
-  width: 40px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background-color: transparent;
-  color: var(--color-text-secondary);
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.label {
   font-size: var(--font-size-sm);
-  font-weight: 500;
-  letter-spacing: 0.04em;
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
-  transition: all var(--transition-fast);
-  cursor: pointer;
+  letter-spacing: 0.1em;
+  color: var(--color-text-tertiary);
 }
 
-.dayButton:hover {
+.allButton {
+  padding: var(--spacing-xs) 0;
+  background: none;
+  color: var(--color-accent-light);
+  font-size: 12.5px;
+  font-weight: var(--font-weight-semibold);
+  transition: color var(--transition-fast);
+}
+
+.allButton:hover {
+  color: var(--color-accent-lighter);
+}
+
+.chips {
+  display: flex;
+  gap: 7px;
+}
+
+.chip {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  transition: background var(--transition-fast), border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.chip:hover {
   border-color: var(--color-accent);
   color: var(--color-text-primary);
 }
 
-.selected {
-  background-color: var(--color-accent);
+.selected,
+.selected:hover {
+  background: var(--color-accent);
   border-color: var(--color-accent);
   color: var(--color-on-accent);
+  font-weight: var(--font-weight-bold);
 }
 
 .selected:hover {
-  background-color: var(--color-accent-hover);
+  background: var(--color-accent-hover);
   border-color: var(--color-accent-hover);
-}
-
-.allButton {
-  margin-top: var(--spacing-sm);
-  align-self: flex-start;
-  padding: 4px 0;
-  background: none;
-  color: var(--color-accent);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  cursor: pointer;
 }
 
 .error {
   color: var(--color-error);
   font-size: var(--font-size-sm);
-  margin-top: var(--spacing-sm);
-}
-
-@media (max-width: 480px) {
-  .dayButton {
-    width: 36px;
-    height: 36px;
-    font-size: var(--font-size-sm);
-  }
 }

@@ -146,6 +146,30 @@ export function calculateCombinedStreak(habits: Habit[]): { current: number; lon
   return { current, longest };
 }
 
+/** Percentual de dias agendados concluídos na janela recente; null se nada foi agendado. */
+export function calculateRecentRate(
+  completions: HabitCompletion[],
+  selectedDays: DayOfWeek[],
+  createdAt: string,
+  windowDays = 30
+): number | null {
+  const today = getToday();
+  const createdDay = startOfDay(createdAt);
+  let scheduled = 0;
+  let done = 0;
+
+  for (let i = 0; i < windowDays; i++) {
+    const date = addDays(today, -i);
+    if (date < createdDay) break;
+    if (!selectedDays.includes(getDayOfWeek(date))) continue;
+    scheduled++;
+    if (isCompletedOnDate(completions, formatDateKey(date))) done++;
+  }
+
+  if (scheduled === 0) return null;
+  return Math.round((done / scheduled) * 100);
+}
+
 export function hasConsecutiveMissedDays(
   completions: HabitCompletion[],
   selectedDays: DayOfWeek[]

@@ -1,49 +1,13 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useHabits } from "../../hooks/useHabits";
-import { Timeline } from "../../components/Timeline/Timeline";
 import { SidePanel } from "../../components/SidePanel/SidePanel";
 import { HabitForm } from "../../components/HabitForm/HabitForm";
-import { HabitsStats } from "../../components/HabitsStats/HabitsStats";
-import { TodayHabits } from "../../components/TodayHabits/TodayHabits";
-import { groupByDay, type TimelineItem } from "../../utils/agenda";
-import { formatDateKey, getToday, isScheduledDay } from "../../utils/dateUtils";
-import { getHabitIcon } from "../../utils/habitIcons";
+import { TodayHeader } from "../../components/TodayHeader/TodayHeader";
+import { TodayHabitList } from "../../components/TodayHabitList/TodayHabitList";
 import { alertApiError, apiErrorMessage } from "../../utils/apiError";
 import type { Habit, HabitFormData } from "../../types/habit";
 import styles from "./HabitsPage.module.css";
-
-interface Occurrence {
-  habit: Habit;
-  dateKey: string;
-  completed: boolean;
-}
-
-function buildOccurrences(habits: Habit[]): { items: TimelineItem[]; byId: Map<string, Occurrence> } {
-  const items: TimelineItem[] = [];
-  const byId = new Map<string, Occurrence>();
-  const date = getToday();
-  const dateKey = formatDateKey(date);
-
-  for (const habit of habits) {
-    if (!isScheduledDay(date, habit.selectedDays)) continue;
-    const completion = habit.completions.find((c) => c.date === dateKey);
-    const completed = Boolean(completion?.completed);
-    const id = `${habit.id}:${dateKey}`;
-    items.push({
-      id,
-      kind: "habit",
-      title: habit.name,
-      when: date.getTime(),
-      detail: `Nível ${habit.level}`,
-      hasTime: false,
-      done: completed,
-    });
-    byId.set(id, { habit, dateKey, completed });
-  }
-
-  return { items, byId };
-}
 
 export function HabitsPage() {
   const { habits, loading, error, createHabit, updateHabit, deleteHabit, reorderHabits, setCompletion } =
@@ -72,9 +36,6 @@ export function HabitsPage() {
     setSearchParams({}, { replace: true });
   }, [setSearchParams]);
 
-  const { items, byId } = useMemo(() => buildOccurrences(habits), [habits]);
-  const weekGroups = useMemo(() => groupByDay(items), [items]);
-
   // Mantém o painel sincronizado com o estado mais recente do hábito.
   const selectedHabit = selected ? habits.find((h) => h.id === selected.id) ?? null : null;
 
@@ -100,19 +61,6 @@ export function HabitsPage() {
     [deleteHabit]
   );
 
-  const iconForHabit = useCallback(
-    (item: TimelineItem) => getHabitIcon(byId.get(item.id)?.habit.icon ?? ""),
-    [byId]
-  );
-
-  const handleItemClick = useCallback(
-    (item: TimelineItem) => {
-      const occ = byId.get(item.id);
-      if (occ) setSelected(occ.habit);
-    },
-    [byId]
-  );
-
   const handleToggle = useCallback(
     (habitId: string, dateKey: string, nextCount: number) =>
       setCompletion(habitId, dateKey, nextCount).catch((err) =>
@@ -122,13 +70,10 @@ export function HabitsPage() {
   );
 
   const handleReorder = useCallback(
-    (newVisibleIds: string[]) => {
-      const todayDate = getToday();
-      const visible = new Set(
-        habits.filter((h) => isScheduledDay(todayDate, h.selectedDays)).map((h) => h.id)
-      );
+    (orderedPendingIds: string[]) => {
+      const pending = new Set(orderedPendingIds);
       let vi = 0;
-      const fullOrder = habits.map((h) => (visible.has(h.id) ? newVisibleIds[vi++]! : h.id));
+      const fullOrder = habits.map((h) => (pending.has(h.id) ? orderedPendingIds[vi++]! : h.id));
       reorderHabits(fullOrder).catch(() => undefined);
     },
     [habits, reorderHabits]
@@ -136,22 +81,26 @@ export function HabitsPage() {
 
   return (
     <div className={styles.page}>
+      {loading && <p className={styles.muted}>Carregando…</p>}
+      {error && <p className={styles.error}>{error}</p>}
+
       {!loading && !error && habits.length > 0 && (
         <>
-          <HabitsStats habits={habits} />
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Hoje</h2>
+          <TodayHeader habits={habits} />
+          <div className={styles.actionsRow}>
             <button className={styles.newButton} aria-label="Novo hábito" onClick={openCreate}>
               <span className={styles.newPlus} aria-hidden="true">+</span>
               <span className={styles.newLabel}>Novo hábito</span>
             </button>
           </div>
-          <TodayHabits habits={habits} onToggle={handleToggle} onReorder={handleReorder} />
+          <TodayHabitList
+            habits={habits}
+            onToggle={handleToggle}
+            onOpen={setSelected}
+            onReorder={handleReorder}
+          />
         </>
       )}
-
-      {loading && <p className={styles.muted}>Carregando…</p>}
-      {error && <p className={styles.error}>{error}</p>}
 
       {!loading && !error && habits.length === 0 && (
         <div className={styles.empty}>
@@ -163,17 +112,6 @@ export function HabitsPage() {
         </div>
       )}
 
-      {!loading && !error && habits.length > 0 && (
-        <Timeline
-          weekGroups={weekGroups}
-          laterGroups={[]}
-          iconFor={iconForHabit}
-          onItemClick={handleItemClick}
-          hideGroupHeaders
-          emptyMessage="Nenhum hábito agendado para hoje."
-        />
-      )}
-
       {selectedHabit && (
         <SidePanel
           habit={selectedHabit}
@@ -183,6 +121,7 @@ export function HabitsPage() {
             setEditing(habit);
           }}
           onDelete={handleDelete}
+          onSetCount={handleToggle}
         />
       )}
 
@@ -202,6 +141,14 @@ export function HabitsPage() {
           error={formError}
           onSave={handleSave}
           onClose={closeForm}
+          onDelete={
+            editing
+              ? () => {
+                  handleDelete(editing.id);
+                  closeForm();
+                }
+              : undefined
+          }
         />
       )}
     </div>

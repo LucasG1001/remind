@@ -110,15 +110,17 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {NAV_ITEMS.slice(mid).map(renderBarItem)}
       </nav>
 
-      <button
-        type="button"
-        className={styles.mobileCalendarFab}
-        onClick={openCalendar}
-        aria-label="Calendário"
-        title="Calendário"
-      >
-        <CalendarIcon className={styles.mobileCalendarIcon} />
-      </button>
+      {!location.pathname.startsWith("/habitos") && (
+        <button
+          type="button"
+          className={styles.mobileCalendarFab}
+          onClick={openCalendar}
+          aria-label="Calendário"
+          title="Calendário"
+        >
+          <CalendarIcon className={styles.mobileCalendarIcon} />
+        </button>
+      )}
     </aside>
   );
 }
