@@ -56,6 +56,8 @@ export function TodayHabitList({ habits, onToggle, onOpen, onReorder }: TodayHab
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startRef = useRef({ x: 0, y: 0 });
   const movedRef = useRef(false);
+  const longPressRef = useRef(false);
+  const downOnIconRef = useRef(false);
   const draggingRef = useRef(false);
   const draggingIdRef = useRef<string | null>(null);
   const dragOrderRef = useRef<string[] | null>(null);
@@ -113,10 +115,13 @@ export function TodayHabitList({ habits, onToggle, onOpen, onReorder }: TodayHab
       setDragOrder(next);
     };
 
+    const blockScroll = (e: TouchEvent) => e.preventDefault();
+
     const cleanup = () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onCancel);
+      document.removeEventListener("touchmove", blockScroll);
     };
 
     const onUp = () => {
@@ -135,6 +140,7 @@ export function TodayHabitList({ habits, onToggle, onOpen, onReorder }: TodayHab
     window.addEventListener("pointermove", onMove, { passive: false });
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onCancel);
+    document.addEventListener("touchmove", blockScroll, { passive: false });
   };
 
   if (entries.length === 0) {
@@ -157,11 +163,17 @@ export function TodayHabitList({ habits, onToggle, onOpen, onReorder }: TodayHab
         onPointerDown={(e) => {
           clearTimer();
           movedRef.current = false;
+          longPressRef.current = false;
           draggingRef.current = false;
           startRef.current = { x: e.clientX, y: e.clientY };
-          if (draggable && canReorder) {
-            const base = pendingIds;
-            timerRef.current = setTimeout(() => startDrag(habit.id, base), LONG_PRESS_DRAG_MS);
+          downOnIconRef.current = Boolean(
+            (e.target as HTMLElement).closest("[data-role='habit-icon']")
+          );
+          if (!downOnIconRef.current) {
+            timerRef.current = setTimeout(() => {
+              longPressRef.current = true;
+              onOpen(habit);
+            }, LONG_PRESS_DRAG_MS);
           }
         }}
         onPointerMove={(e) => {
@@ -172,7 +184,14 @@ export function TodayHabitList({ habits, onToggle, onOpen, onReorder }: TodayHab
           ) {
             movedRef.current = true;
             clearTimer();
+            if (downOnIconRef.current && draggable && canReorder) {
+              startDrag(habit.id, pendingIds);
+            }
           }
+        }}
+        onPointerUp={() => {
+          if (draggingRef.current) return;
+          clearTimer();
         }}
         onPointerCancel={() => {
           if (draggingRef.current) return;
@@ -182,6 +201,7 @@ export function TodayHabitList({ habits, onToggle, onOpen, onReorder }: TodayHab
       >
         <button
           type="button"
+          data-role="habit-icon"
           className={styles.iconButton}
           aria-label={`Detalhes de ${habit.name}`}
           onClick={() => {
@@ -202,7 +222,7 @@ export function TodayHabitList({ habits, onToggle, onOpen, onReorder }: TodayHab
           onPointerUp={() => {
             if (draggingRef.current) return;
             clearTimer();
-            if (!movedRef.current) {
+            if (!movedRef.current && !longPressRef.current) {
               onToggle(habit.id, todayKey, count >= target ? 0 : count + 1);
             }
             movedRef.current = false;

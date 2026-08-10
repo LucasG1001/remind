@@ -45,7 +45,7 @@ export function SidePanel({ habit, onClose, onEdit, onDelete, onSetCount }: Side
 
   return (
     <>
-      <div className={styles.backdrop} onClick={onClose} aria-hidden="true" />
+      <div className={styles.backdrop} onPointerDown={onClose} aria-hidden="true" />
       <aside className={styles.panel} role="dialog" aria-label={`Detalhes de ${habit.name}`}>
         <div className={styles.actionsBar}>
           <button className={styles.iconAction} onClick={onClose} aria-label="Fechar painel">
