@@ -1,23 +1,21 @@
 .wrapper {
   display: flex;
   flex-direction: column;
-  padding: var(--spacing-md) 14px 0;
+  padding: var(--spacing-md) 0 0;
 }
 
 .list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
   list-style: none;
 }
 
 .row {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: var(--spacing-md);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-secondary);
+  gap: var(--spacing-md);
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--color-border-subtle);
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
@@ -27,8 +25,12 @@
     transform var(--transition-fast);
 }
 
+.list .row:last-child {
+  border-bottom: none;
+}
+
 .rowDone {
-  background: var(--color-bg-done);
+  opacity: 0.55;
 }
 
 .dragging,
@@ -40,20 +42,17 @@
 
 .iconButton {
   flex: none;
-  width: 44px;
+  width: 34px;
   height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-lg);
-  background: var(--color-accent-subtle);
-  color: var(--color-accent-light);
+  color: var(--color-accent);
   touch-action: none;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition: color var(--transition-fast);
 }
 
 .rowDone .iconButton {
-  background: var(--color-success-subtle);
   color: var(--color-success);
 }
 
@@ -79,7 +78,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 .name {
@@ -95,45 +94,36 @@
 
 .rowDone .name {
   font-weight: var(--font-weight-medium);
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   text-decoration: line-through;
 }
 
 .subtitle {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: 5px;
   font-size: 12.5px;
   color: var(--color-text-secondary);
   line-height: 1.3;
+  white-space: nowrap;
 }
 
-.dashes {
-  display: flex;
-  gap: 3px;
+.separator {
+  color: var(--color-text-tertiary);
 }
 
-.dash {
-  display: block;
-  width: 14px;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--color-border);
-  transition: background var(--transition-fast);
-}
-
-.dashFilled {
-  background: var(--color-accent);
+.level {
+  color: var(--color-accent-light);
 }
 
 .check {
   flex: none;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   border: 1.5px solid var(--color-border);
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
@@ -185,15 +175,14 @@
 
 @media (hover: hover) {
   .row:hover {
-    background: var(--color-bg-hover);
-  }
-
-  .rowDone:hover {
-    background: var(--color-bg-done);
+    background: var(--color-bg-secondary);
   }
 
   .iconButton:hover {
-    background: var(--color-accent);
-    color: var(--color-on-accent);
+    color: var(--color-accent-light);
+  }
+
+  .rowDone .iconButton:hover {
+    color: var(--color-success);
   }
 }

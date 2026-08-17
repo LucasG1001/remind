@@ -5,6 +5,7 @@ import { getHabitIcon } from "../../utils/habitIcons";
 import { moveRelativeTo } from "../../utils/reorder";
 import { LONG_PRESS_DRAG_MS, MOVE_THRESHOLD } from "../../hooks/useLongPress";
 import { CheckMarkIcon } from "../Sidebar/Sidebar.icons";
+import { WeekBars } from "../WeekBars/WeekBars";
 import styles from "./TodayHabitList.module.css";
 
 interface TodayHabitListProps {
@@ -22,16 +23,16 @@ interface Entry {
 }
 
 const DONE_COLLAPSED_KEY = "habits-done-collapsed";
-const MAX_DASHES = 8;
 
 function readCollapsed(): boolean {
   return localStorage.getItem(DONE_COLLAPSED_KEY) === "true";
 }
 
-function streakLabel(habit: Habit): string {
-  if (habit.currentStreak === 0) return `Nível ${habit.level} · sem sequência`;
-  const unit = habit.currentStreak === 1 ? "dia seguido" : "dias seguidos";
-  return `Nível ${habit.level} · ${habit.currentStreak} ${unit}`;
+function progressLabel(entry: Entry): string {
+  const { habit, count, target, completed } = entry;
+  if (target > 1 && !completed) return `${count}/${target} hoje`;
+  if (habit.currentStreak === 0) return "sem sequência";
+  return `${habit.currentStreak} ${habit.currentStreak === 1 ? "dia" : "dias"}`;
 }
 
 export function TodayHabitList({ habits, onToggle, onOpen, onReorder }: TodayHabitListProps) {
@@ -151,7 +152,6 @@ export function TodayHabitList({ habits, onToggle, onOpen, onReorder }: TodayHab
     const { habit, count, target, completed } = entry;
     const Icon = getHabitIcon(habit.icon);
     const isDragging = draggingId === habit.id;
-    const showDashes = !completed && target > 1 && target <= MAX_DASHES;
 
     return (
       <li
@@ -230,22 +230,18 @@ export function TodayHabitList({ habits, onToggle, onOpen, onReorder }: TodayHab
         >
           <span className={styles.text}>
             <span className={styles.name}>{habit.name}</span>
-            {!completed && (
-              <span className={styles.subtitle}>
-                {showDashes && (
-                  <span className={styles.dashes} aria-hidden="true">
-                    {Array.from({ length: target }, (_, i) => (
-                      <span
-                        key={i}
-                        className={`${styles.dash} ${i < count ? styles.dashFilled : ""}`}
-                      />
-                    ))}
-                  </span>
-                )}
-                {target > 1 ? `${count} de ${target}` : streakLabel(habit)}
-              </span>
-            )}
+            <span className={styles.subtitle}>
+              {progressLabel(entry)}
+              <span className={styles.separator} aria-hidden="true">·</span>
+              <span className={styles.level}>Nv {habit.level}</span>
+            </span>
           </span>
+
+          <WeekBars
+            completions={habit.completions}
+            selectedDays={habit.selectedDays}
+            createdAt={habit.createdAt}
+          />
 
           <span className={styles.check} aria-hidden="true">
             {completed && <CheckMarkIcon className={styles.checkIcon} />}

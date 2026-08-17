@@ -72,6 +72,18 @@ export function getTodayKey(): string {
   return formatDateKey(getToday());
 }
 
+/** Segunda-feira da semana à qual a data pertence. */
+export function startOfWeek(date: Date): Date {
+  const dow = getDayOfWeek(date);
+  return addDays(date, dow === 0 ? -6 : 1 - dow);
+}
+
+/** Os 7 dias da semana atual, de segunda a domingo. */
+export function getWeekDays(): Date[] {
+  const monday = startOfWeek(getToday());
+  return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+}
+
 export function parseDate(dateKey: string): Date {
   const [year, month, day] = dateKey.split("-").map(Number);
   return new Date(year!, month! - 1, day);
