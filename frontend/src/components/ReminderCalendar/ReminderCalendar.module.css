@@ -98,6 +98,9 @@
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
+  width: 100%;
+  padding: 0;
+  transition: background var(--transition-fast);
 }
 
 .today {
@@ -177,4 +180,87 @@
   font-weight: var(--font-weight-bold);
   line-height: 1;
   box-shadow: 0 0 8px var(--color-accent-glow);
+}
+
+.dayCell:hover {
+  background: var(--color-bg-hover);
+}
+
+.dayNumber {
+  line-height: 1;
+}
+
+.selected {
+  background: var(--color-accent-subtle);
+  box-shadow: inset 0 0 0 2px var(--color-accent-light);
+}
+
+.dayPanel {
+  margin-top: var(--spacing-base);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.dayPanelHeader {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.dayPanelHoliday {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-warning);
+}
+
+.dayPanelEmpty {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.event {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-md);
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+
+.event:hover {
+  background: var(--color-bg-hover);
+}
+
+.eventTime {
+  flex-shrink: 0;
+  min-width: 62px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.eventText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.eventTitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.eventNotes {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
 }

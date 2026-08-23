@@ -80,11 +80,16 @@ export function groupByMonth(items: TimelineItem[]): TimelineGroup[] {
   });
 }
 
-export function countRemindersByDay(reminders: { eventAt: string }[]): Map<string, number> {
-  const map = new Map<string, number>();
+export function groupRemindersByDay<T extends { eventAt: string }>(reminders: T[]): Map<string, T[]> {
+  const map = new Map<string, T[]>();
   for (const reminder of reminders) {
     const key = spDateKey(new Date(reminder.eventAt));
-    map.set(key, (map.get(key) ?? 0) + 1);
+    const list = map.get(key);
+    if (list) list.push(reminder);
+    else map.set(key, [reminder]);
+  }
+  for (const list of map.values()) {
+    list.sort((a, b) => Date.parse(a.eventAt) - Date.parse(b.eventAt));
   }
   return map;
 }

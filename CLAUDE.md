@@ -79,7 +79,7 @@ Dois domínios, mesmo padrão em camadas: `types/` → `models/` (mapper `toX` s
 - **TypeScript** strict nos dois lados. Backend `module: NodeNext` → **imports com extensão `.js`**. Frontend `moduleResolution: bundler` → sem extensão.
 - **Estilo**: CSS Modules por componente, sem libs de UI. Sempre usar as variáveis do `global.css`, nunca hardcode de cores/tamanhos.
 - **Estado**: só hooks do React (`useState`/`useEffect`/etc.) — sem Redux/Zustand.
-- **Sem comentários** no código.
+- **Sem comentários** no código, exceto quando registram uma restrição não óbvia.
 - **HTTP**: `201` create, `204` delete, `400` validação, `404` not found, `409` conflito (`CompletionLockedError`), `500` erro.
 
 ## Fuso horário
@@ -108,3 +108,14 @@ Migração de dados do antigo `done`: `backend/scripts/migrate-habits-from-done.
 
 - Para tarefas que envolvam mais de um arquivo, apresente um plano e aguarde aprovação antes de editar.
 - Tarefas simples (1 arquivo, mudança pequena) pode executar direto.
+
+## Manutenção deste arquivo
+
+- Quando uma mudança tornar algo aqui factualmente incorreto (módulo/arquivo renomeado ou
+  removido, comando alterado, nova integração, novo invariante ou gotcha), atualize a linha
+  afetada na mesma tarefa.
+- Edite no lugar e remova o que ficou obsoleto — este arquivo não cresce sem contrapartida.
+  Prefira descrever padrões/invariantes estáveis a listar arquivos.
+- Documente fatos, não preferências. Não adicione convenções ou "boas práticas" novas por conta
+  própria: proponha e deixe a decisão de estilo comigo.
+- Mantenha conciso e em português.
