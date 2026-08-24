@@ -24,9 +24,9 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       PORT: 3333
-      # A notify-api é alcançável na remindme-net pelo nome do serviço.
-      NOTIFY_API_URL: http://notify-api:3334
-      NOTIFY_API_KEY: ${NOTIFY_API_KEY}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: ${VAPID_SUBJECT}
     # Sem porta no host: o proxy reverso central (caddy-docker-proxy, stack ../media/proxy)
     # descobre este container pela rede proxy-net via labels e termina o TLS.
     # O Express serve o SPA e a API na mesma porta 3333.
@@ -47,7 +47,7 @@ volumes:
   postgres_data:
 
 networks:
-  # Rede compartilhada com a notify-api (criar uma vez na VPS: docker network create remindme-net).
+  # Rede compartilhada da VPS (criar uma vez: docker network create remindme-net).
   remindme-net:
     external: true
   # Rede compartilhada com o proxy reverso central (Caddy). Criar uma vez:

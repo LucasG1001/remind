@@ -1,6 +1,6 @@
 export type ReminderStatus = "active" | "done" | "cancelled";
 
-export type ReminderPhase = "pending" | "pre" | "due" | "at" | "nag" | "day_before" | "morning";
+export type ReminderPhase = "pending" | "pre" | "due" | "at" | "nag" | "day_before" | "morning" | "snoozed";
 
 export type RecurUnit = "day" | "week" | "month" | "year";
 

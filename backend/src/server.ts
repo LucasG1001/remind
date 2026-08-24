@@ -12,6 +12,7 @@ import { habitRoutes } from "./routes/habitRoutes.js";
 import { projectRoutes } from "./routes/projectRoutes.js";
 import { flashcardRoutes } from "./routes/flashcardRoutes.js";
 import { flashcardCategoryRoutes } from "./routes/flashcardCategoryRoutes.js";
+import { pushRoutes } from "./routes/pushRoutes.js";
 import { notFoundHandler, errorHandler } from "./middleware/errorHandler.js";
 import { startScheduler } from "./services/reminderScheduler.js";
 
@@ -30,6 +31,7 @@ app.use("/api/habits", habitRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/flashcards", flashcardRoutes);
 app.use("/api/flashcard-categories", flashcardCategoryRoutes);
+app.use("/api/push", pushRoutes);
 
 const clientDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../public");
 if (existsSync(clientDir)) {

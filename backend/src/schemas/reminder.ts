@@ -30,6 +30,11 @@ export const rescheduleSchema = z.object({
   time: z.string().regex(timeRe, "Hora inválida (use HH:MM).").nullish(),
 });
 
+export const snoozeSchema = z.object({
+  minutes: z.number().int().min(1, "Informe os minutos da soneca.").max(1440),
+});
+
 export type CreateReminderBody = z.infer<typeof createReminderSchema>;
 export type UpdateReminderBody = z.infer<typeof updateReminderSchema>;
 export type RescheduleBody = z.infer<typeof rescheduleSchema>;
+export type SnoozeBody = z.infer<typeof snoozeSchema>;

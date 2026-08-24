@@ -2,7 +2,8 @@ import type { ReminderMessage } from "./reminderStateMachine.js";
 
 /**
  * Mensagens das notificações. Tom leve e direto, em PT-BR. O título e a
- * descrição são montados aqui; os botões de ação são adicionados pelo scheduler.
+ * descrição são montados aqui; os botões de ação são fixos e ficam no service
+ * worker (frontend/public/sw.js).
  */
 
 export function pre30(title: string): ReminderMessage {
@@ -30,6 +31,13 @@ export function nag(title: string): ReminderMessage {
   return {
     title: `👀 E aí, conseguiu?`,
     description: `Ainda lembrando de ${title}. Quando der, conclua ou remarque no app.`,
+  };
+}
+
+export function snoozeReturn(title: string): ReminderMessage {
+  return {
+    title: `⏰ Voltei!`,
+    description: `Você pediu pra eu lembrar de ${title} de novo. Aqui estou. 🙌`,
   };
 }
 

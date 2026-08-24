@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useReminders } from "../../hooks/useReminders";
 import { ReminderActionsSheet } from "../../components/ReminderActionsSheet/ReminderActionsSheet";
+import { PushBanner } from "../../components/PushBanner/PushBanner";
 import { Timeline } from "../../components/Timeline/Timeline";
 import { BellIcon, CalendarIcon } from "../../components/Sidebar/Sidebar.icons";
 import { useCalendar } from "../../context/useCalendar";
@@ -68,13 +69,15 @@ export function RemindersPage() {
         </div>
       </header>
 
+      <PushBanner />
+
       {loading && <p className={styles.muted}>Carregando…</p>}
       {error && <p className={styles.error}>{error}</p>}
 
       {!loading && !error && reminders.length === 0 && (
         <div className={styles.empty}>
           <p className={styles.emptyTitle}>Nada por aqui ainda</p>
-          <p className={styles.muted}>Crie seu primeiro lembrete e eu te aviso no Telegram.</p>
+          <p className={styles.muted}>Crie seu primeiro lembrete e eu te aviso na hora.</p>
           <Link to="/lembretes/novo" className={styles.emptyButton}>
             + Novo lembrete
           </Link>

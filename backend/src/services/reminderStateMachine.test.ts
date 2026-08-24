@@ -117,6 +117,26 @@ describe("decide (com hora)", () => {
     expect(patch.eventAt).toBeUndefined();
     expect(patch.nextNotifyAt).toBeNull();
   });
+
+  it("soneca vencida antes do evento retoma a trilha sem mover o compromisso", () => {
+    const now = parseEventAt("2026-06-18", "13:45");
+    const r = makeReminder({ phase: "snoozed", notifyCount: 0 });
+    const { message, patch } = decide(r, now);
+    expect(message.title).toContain("Voltei");
+    expect(patch.phase).toBe("pre");
+    // o aviso de 5 min (13:55) e o "é agora" (14:00) continuam valendo
+    expect(toSpParts(patch.nextNotifyAt as Date)).toMatchObject({ hour: 13, minute: 55 });
+    expect(patch.eventAt).toBeUndefined();
+  });
+
+  it("soneca vencida depois do evento volta ao nag de 15 min", () => {
+    const now = parseEventAt("2026-06-18", "14:30");
+    const r = makeReminder({ phase: "snoozed", notifyCount: 4 });
+    const { patch } = decide(r, now);
+    expect(patch.phase).toBe("nag");
+    expect(patch.nextNotifyAt?.getTime()).toBe(now.getTime() + 15 * 60 * 1000);
+    expect(patch.eventAt).toBeUndefined();
+  });
 });
 
 describe("decide (dia inteiro)", () => {
@@ -133,6 +153,32 @@ describe("decide (dia inteiro)", () => {
     expect(patch.status).toBeUndefined();
     expect(patch.phase).toBe("morning");
     expect(patch.nextNotifyAt).toBeNull();
+  });
+
+  it("soneca do aviso da véspera preserva o bom dia do dia do evento", () => {
+    const now = parseEventAt("2026-06-17", "08:15");
+    const r = makeReminder({
+      isAllDay: true,
+      eventAt: parseEventAt("2026-06-18", null).toISOString(),
+      phase: "snoozed",
+    });
+    const { message, patch } = decide(r, now);
+    expect(message.title).toContain("Voltei");
+    expect(patch.phase).toBe("day_before");
+    expect(toSpParts(patch.nextNotifyAt as Date)).toMatchObject({ day: 18, hour: 8 });
+  });
+
+  it("soneca do aviso do dia encerra o ciclo depois de voltar", () => {
+    const now = parseEventAt("2026-06-18", "08:15");
+    const r = makeReminder({
+      isAllDay: true,
+      eventAt: parseEventAt("2026-06-18", null).toISOString(),
+      phase: "snoozed",
+    });
+    const { patch } = decide(r, now);
+    expect(patch.phase).toBe("morning");
+    expect(patch.nextNotifyAt).toBeNull();
+    expect(patch.eventAt).toBeUndefined();
   });
 });
 

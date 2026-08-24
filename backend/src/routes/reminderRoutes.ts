@@ -7,6 +7,7 @@ import {
   reschedule,
   remove,
   acknowledge,
+  snooze,
   cancel,
 } from "../controllers/reminderController.js";
 
@@ -19,6 +20,7 @@ router.put("/:id", update);
 router.post("/:id/reschedule", reschedule);
 router.delete("/:id", remove);
 router.post("/:id/acknowledge", acknowledge);
+router.post("/:id/snooze", snooze);
 router.post("/:id/cancel", cancel);
 
 export { router as reminderRoutes };

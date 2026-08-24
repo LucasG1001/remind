@@ -1,7 +1,7 @@
 import * as reminderModel from "../models/reminderModel.js";
 import { addMinutes } from "../lib/dateUtils.js";
 import { decide } from "./reminderStateMachine.js";
-import { sendNotification } from "./notifyService.js";
+import { sendPush } from "./pushService.js";
 
 const TICK_MS = 60 * 1000;
 const BATCH_LIMIT = 100;
@@ -22,11 +22,15 @@ export async function processDue(now: Date = new Date()): Promise<void> {
       // a fase/contagem não avançaria e a mesma notificação repetiria a cada tick.
       await reminderModel.update(reminder.id, patch);
       try {
-        const messageId = await sendNotification({ ...message });
-        if (messageId === null) {
-          console.warn(`[scheduler] lembrete ${reminder.id} ("${reminder.title}") processado sem id de mensagem (notify-api não configurada?).`);
+        const sent = await sendPush({
+          ...message,
+          reminderId: reminder.id,
+          url: `/lembretes/r/${reminder.id}`,
+        });
+        if (sent === 0) {
+          console.warn(`[scheduler] lembrete ${reminder.id} ("${reminder.title}") processado sem envio de push (VAPID ausente ou nenhum aparelho inscrito).`);
         } else {
-          console.log(`[scheduler] lembrete ${reminder.id} ("${reminder.title}") notificado: ${reminder.phase} → ${patch.phase ?? reminder.phase}.`);
+          console.log(`[scheduler] lembrete ${reminder.id} ("${reminder.title}") notificado em ${sent} aparelho(s): ${reminder.phase} → ${patch.phase ?? reminder.phase}.`);
         }
       } catch (error) {
         console.error(`[scheduler] falha ao enviar notificação do lembrete ${reminder.id} ("${reminder.title}"):`, error);

@@ -1,6 +1,6 @@
-import { createReminderSchema, updateReminderSchema, rescheduleSchema } from "../schemas/reminder.js";
+import { createReminderSchema, updateReminderSchema, rescheduleSchema, snoozeSchema } from "../schemas/reminder.js";
 import * as reminderModel from "../models/reminderModel.js";
-import { parseEventAt, computeNextOccurrence, isPastEvent, isOnOrAfter, toSpParts } from "../lib/dateUtils.js";
+import { parseEventAt, computeNextOccurrence, isPastEvent, isOnOrAfter, toSpParts, addMinutes } from "../lib/dateUtils.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
 import { parseBody, requireUuid } from "../lib/validation.js";
 import { finishOccurrence, initialSchedule } from "../services/reminderStateMachine.js";
@@ -186,6 +186,31 @@ export const acknowledge = asyncHandler("Erro ao confirmar lembrete.", async (re
   }
   const updated = await reminderModel.update(reminder.id, patch);
   res.json(updated);
+});
+
+export const snooze = asyncHandler("Erro ao adiar lembrete.", async (req, res) => {
+  const id = String(req.params.id);
+  if (!requireUuid(res, id, NOT_FOUND)) return;
+  const existing = await reminderModel.findById(id);
+  if (!existing) {
+    res.status(404).json({ error: NOT_FOUND });
+    return;
+  }
+  const body = parseBody(res, snoozeSchema, req.body);
+  if (!body) return;
+  if (existing.status !== "active") {
+    res.status(400).json({ error: "Só é possível adiar um lembrete ativo." });
+    return;
+  }
+  // Soneca adia só o aviso: o event_at da ocorrência não se move (é o que
+  // separa soneca de remarcar). notifyCount volta a zero para o maxNotify não
+  // travar sonecas seguidas, que são sempre ação explícita do usuário.
+  const reminder = await reminderModel.update(existing.id, {
+    phase: "snoozed",
+    nextNotifyAt: addMinutes(new Date(), body.minutes),
+    notifyCount: 0,
+  });
+  res.json(reminder);
 });
 
 export const cancel = asyncHandler("Erro ao cancelar lembrete.", async (req, res) => {

@@ -85,7 +85,7 @@ export function finishOccurrence(r: Reminder, now: Date): ReminderPatch {
 
 /** Decide a próxima ação de um lembrete vencido (função pura). */
 export function decide(r: Reminder, now: Date): TickResult {
-  return r.isAllDay ? decideAllDay(r) : decideTimed(r, now);
+  return r.isAllDay ? decideAllDay(r, now) : decideTimed(r, now);
 }
 
 function decideTimed(r: Reminder, now: Date): TickResult {
@@ -103,12 +103,40 @@ function decideTimed(r: Reminder, now: Date): TickResult {
       return { message: messages.pre5(r.title), patch: { phase: "due", nextNotifyAt: new Date(r.eventAt), notifyCount } };
     case "due":
       return { message: messages.atTime(r.title), patch: { phase: "at", nextNotifyAt: addMinutes(now, NAG_INTERVAL_MIN), notifyCount } };
+    // Soneca vencida: o evento não foi movido, então retoma a trilha normal a
+    // partir de agora — o aviso da hora continua caindo no horário certo.
+    case "snoozed": {
+      const eventAt = new Date(r.eventAt);
+      if (now < eventAt) {
+        const sched = initialSchedule(eventAt, false, now);
+        return {
+          message: messages.snoozeReturn(r.title),
+          patch: { phase: sched.phase, nextNotifyAt: sched.nextNotifyAt, notifyCount },
+        };
+      }
+      return { message: messages.nag(r.title), patch: { phase: "nag", nextNotifyAt: addMinutes(now, NAG_INTERVAL_MIN), notifyCount } };
+    }
     default:
       return { message: messages.nag(r.title), patch: { phase: "nag", nextNotifyAt: addMinutes(now, NAG_INTERVAL_MIN), notifyCount } };
   }
 }
 
-function decideAllDay(r: Reminder): TickResult {
+function decideAllDay(r: Reminder, now: Date): TickResult {
+  if (r.phase === "snoozed") {
+    const morning = spDateAtTime(new Date(r.eventAt), 0, ALLDAY_MORNING_HOUR, 0);
+    // Soneca do aviso da véspera: o "bom dia" do dia do evento continua valendo.
+    if (now < morning) {
+      return {
+        message: messages.snoozeReturn(r.title),
+        patch: { phase: "day_before", nextNotifyAt: morning, notifyCount: r.notifyCount + 1 },
+      };
+    }
+    return {
+      message: messages.snoozeReturn(r.title),
+      patch: { phase: "morning", nextNotifyAt: null, notifyCount: r.notifyCount + 1 },
+    };
+  }
+
   if (r.phase === "pending") {
     const morning = spDateAtTime(new Date(r.eventAt), 0, ALLDAY_MORNING_HOUR, 0);
     return {
