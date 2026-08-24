@@ -54,6 +54,15 @@ async function openApp(url) {
   return self.clients.openWindow(target.href);
 }
 
+// O service worker mudou o estado no servidor; sem este aviso a página aberta
+// continuaria mostrando a lista antiga até um reload manual.
+async function notifyClients(reminderId, action) {
+  const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  for (const client of windows) {
+    client.postMessage({ type: "reminder-updated", reminderId, action });
+  }
+}
+
 async function handleAction(action, data) {
   const reminderId = data.reminderId;
   const tag = reminderId ?? "remindme";
@@ -66,9 +75,11 @@ async function handleAction(action, data) {
   try {
     if (action === "snooze-15") {
       await postJson(`/api/reminders/${reminderId}/snooze`, { minutes: 15 });
+      await notifyClients(reminderId, action);
       await notify("😴 Soneca de 15 minutos", "Te aviso de novo em 15 min — o compromisso segue no mesmo horário.", tag);
     } else {
       await postJson(`/api/reminders/${reminderId}/acknowledge`);
+      await notifyClients(reminderId, action);
       await notify("✅ Concluído", "Lembrete marcado como concluído.", tag);
     }
   } catch {

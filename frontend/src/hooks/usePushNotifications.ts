@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchVapidPublicKey, registerSubscription, removeSubscription } from "../services/pushService";
 import { urlBase64ToArrayBuffer } from "../utils/push";
+import { apiErrorMessage } from "../utils/apiError";
 
 const SW_URL = "/sw.js";
 
@@ -62,8 +63,10 @@ export function usePushNotifications() {
         }));
       await registerSubscription(subscription.toJSON());
       setSubscribed(true);
-    } catch {
-      setError("Não foi possível ativar as notificações neste aparelho.");
+    } catch (err) {
+      // A API já responde com uma mensagem em português (ex: VAPID ausente no
+      // servidor); esconder isso atrás de um texto genérico custa diagnóstico.
+      setError(apiErrorMessage(err, "Não foi possível ativar as notificações neste aparelho."));
     } finally {
       setBusy(false);
     }
@@ -81,8 +84,8 @@ export function usePushNotifications() {
         await subscription.unsubscribe();
       }
       setSubscribed(false);
-    } catch {
-      setError("Não foi possível desativar as notificações.");
+    } catch (err) {
+      setError(apiErrorMessage(err, "Não foi possível desativar as notificações."));
     } finally {
       setBusy(false);
     }

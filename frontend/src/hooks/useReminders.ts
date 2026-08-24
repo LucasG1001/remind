@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import {
   fetchReminders,
   deleteReminder,
@@ -46,6 +46,17 @@ export function useReminders() {
     async (id: string, input: RescheduleInput) => applyUpdate(await rescheduleReminder(id, input)),
     [applyUpdate]
   );
+
+  // Ações feitas pelos botões da notificação acontecem fora do React: o service
+  // worker avisa as janelas abertas para a lista não ficar velha.
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type === "reminder-updated") reload();
+    };
+    navigator.serviceWorker.addEventListener("message", onMessage);
+    return () => navigator.serviceWorker.removeEventListener("message", onMessage);
+  }, [reload]);
 
   const cancel = useCallback(
     async (id: string) => applyUpdate(await cancelReminder(id)),
