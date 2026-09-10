@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from "react";
 import type { Habit } from "../../types/habit";
 import type { AgendaLayout, HabitEntry } from "../../utils/agendaGrid";
 import {
+  COLUMN_GAP,
   END_HOUR,
   MIN_BLOCK_MINUTES,
   PX_PER_HOUR,
@@ -68,7 +69,10 @@ export function DayGrid({ layout, nowMinutes, onToggle, onOpen, onCreateAt }: Da
 
   return (
     <div className={styles.scroller} ref={scrollerRef}>
-      <div className={styles.grid} style={{ height }}>
+      <div
+        className={styles.grid}
+        style={{ height, ["--px-per-hour" as string]: `${PX_PER_HOUR}px` }}
+      >
         {Array.from({ length: hours }, (_, i) => (
           <div key={startHour + i} className={styles.hour}>
             <span className={styles.hourLabel}>
@@ -111,6 +115,7 @@ export function DayGrid({ layout, nowMinutes, onToggle, onOpen, onCreateAt }: Da
             const state = habitState({ completed, endMin: block.endMin }, nowMinutes);
             const range = formatRange(block.startMin, block.minutes);
             const short = block.height < 44;
+            const narrow = block.columns > 1;
 
             return (
               <li
@@ -118,9 +123,12 @@ export function DayGrid({ layout, nowMinutes, onToggle, onOpen, onCreateAt }: Da
                 className={styles.block}
                 data-state={state}
                 data-short={short || undefined}
+                data-narrow={narrow || undefined}
                 style={{
                   top: block.top,
                   height: block.height,
+                  left: `${(block.column / block.columns) * 100}%`,
+                  width: `calc(${100 / block.columns}% - ${COLUMN_GAP}px)`,
                   ["--hit-bottom" as string]: `${Math.min(
                     HIT_EXPAND_MAX,
                     Math.max(0, block.spaceBelow - 1)
@@ -184,7 +192,7 @@ export function DayGrid({ layout, nowMinutes, onToggle, onOpen, onCreateAt }: Da
                 >
                   <span className={styles.body}>
                     <span className={styles.name}>{habit.name}</span>
-                    {block.tall && (
+                    {block.tall && !narrow && (
                       <span className={styles.meta}>
                         {range} · {formatDuration(block.minutes)}
                         <span className={styles.metaLevel}> · Nv {habit.level}</span>

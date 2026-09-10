@@ -24,7 +24,7 @@
 .hour {
   display: flex;
   align-items: flex-start;
-  height: 48px;
+  height: var(--px-per-hour);
   border-top: 1px solid var(--color-border-faint);
 }
 
@@ -53,8 +53,6 @@
   --rail: var(--color-accent-rail);
   --edge: var(--color-border-subtle);
   position: absolute;
-  left: 0;
-  right: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -72,8 +70,8 @@
   transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
-/* O bloco de 15 min tem 26px: amplia o alvo de toque só até a folga real
-   até o bloco seguinte (--hit-bottom), sem roubar o toque do vizinho. */
+/* Bloco de 15 min tem só um quarto de hora de altura: amplia o alvo de toque
+   até a folga real abaixo (--hit-bottom), sem roubar o toque do vizinho. */
 .block[data-short]::before {
   content: "";
   position: absolute;
@@ -93,6 +91,17 @@
   --edge: var(--color-success-border);
   background: var(--color-bg-done);
   opacity: 0.6;
+}
+
+/* Em coluna dividida não sobra largura para o horário — a posição na grade
+   já diz a hora. */
+.block[data-narrow] {
+  gap: 6px;
+  padding: 0 8px;
+}
+
+.block[data-narrow] .time {
+  display: none;
 }
 
 .iconButton {
@@ -266,6 +275,11 @@
     gap: 12px;
     padding: 0 14px;
     border-radius: 12px;
+  }
+
+  .block[data-narrow] {
+    gap: 8px;
+    padding: 0 10px;
   }
 
   .iconBox {
