@@ -9,12 +9,15 @@
   --color-bg-overlay: rgba(0, 0, 0, 0.6);
   --color-bg-drawer: #0e0e16;
   --color-bg-done: #0e1216;
+  --color-bg-sunken: #0c0c14;
 
   --color-surface: #1c1c2e;
   --color-surface-hover: #252540;
 
   --color-border: #2a2a40;
   --color-border-subtle: #1e1e30;
+  --color-border-faint: #15151f;
+  --color-border-sheet: #262640;
 
   --color-text-primary: #e8e8f0;
   --color-text-secondary: #9090a8;
@@ -25,6 +28,7 @@
   --color-accent-hover: #7c3aed;
   --color-accent-subtle: rgba(139, 92, 246, 0.12);
   --color-accent-glow: rgba(139, 92, 246, 0.3);
+  --color-accent-rail: rgba(139, 92, 246, 0.35);
 
   --color-success: #10b981;
   --color-success-subtle: rgba(16, 185, 129, 0.12);
@@ -35,9 +39,12 @@
   --color-error-subtle: rgba(239, 68, 68, 0.12);
   --color-error-hover: #fca5a5;
   --color-error-soft: rgba(239, 68, 68, 0.2);
+  --color-error-border: rgba(239, 68, 68, 0.28);
+  --color-error-rail: rgba(239, 68, 68, 0.35);
   --color-error-outline: rgba(248, 113, 113, 0.4);
   --color-error-bg-faint: rgba(248, 113, 113, 0.08);
   --color-success-soft: rgba(16, 185, 129, 0.2);
+  --color-success-border: rgba(16, 185, 129, 0.25);
   --color-info: #3b82f6;
   --color-info-subtle: rgba(59, 130, 246, 0.12);
 

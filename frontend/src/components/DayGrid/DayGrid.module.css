@@ -1,0 +1,312 @@
+.scroller {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  padding: 10px 14px 8px;
+}
+
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.emptyGrid {
+  padding: var(--spacing-xl) var(--spacing-xs);
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+}
+
+.grid {
+  position: relative;
+}
+
+.hour {
+  display: flex;
+  align-items: flex-start;
+  height: 48px;
+  border-top: 1px solid var(--color-border-faint);
+}
+
+.hourLabel {
+  width: 40px;
+  flex: none;
+  font-size: 10.5px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-tertiary);
+  transform: translateY(-5px);
+}
+
+.layer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 46px;
+  right: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  touch-action: pan-y;
+}
+
+.block {
+  --rail: var(--color-accent-rail);
+  --edge: var(--color-border-subtle);
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--edge);
+  border-left: 3px solid var(--rail);
+  animation: cardEnter var(--transition-base);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+/* O bloco de 15 min tem 26px: amplia o alvo de toque só até a folga real
+   até o bloco seguinte (--hit-bottom), sem roubar o toque do vizinho. */
+.block[data-short]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -4px;
+  bottom: calc(-1 * var(--hit-bottom, 4px));
+}
+
+.block[data-state="late"] {
+  --rail: var(--color-error-rail);
+  --edge: var(--color-error-border);
+}
+
+.block[data-state="done"] {
+  --rail: var(--color-success);
+  --edge: var(--color-success-border);
+  background: var(--color-bg-done);
+  opacity: 0.6;
+}
+
+.iconButton {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-accent-lighter);
+}
+
+.iconBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+}
+
+.block[data-state="done"] .iconBox {
+  background: var(--color-success-subtle);
+  color: var(--color-success);
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.8;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.name {
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.block[data-state="done"] .name {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+}
+
+.meta {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metaLevel {
+  display: none;
+}
+
+/* Sem nowrap o "20:00–20:40" quebra e some no overflow do bloco. */
+.time {
+  flex: none;
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.check {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1.5px solid var(--color-border);
+  color: var(--color-on-success);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.block[data-state="done"] .check {
+  background: var(--color-success);
+  border-color: transparent;
+}
+
+.checkIcon {
+  width: 13px;
+  height: 13px;
+  stroke-width: 3.2;
+}
+
+.now {
+  position: absolute;
+  left: -46px;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  pointer-events: none;
+}
+
+.nowLabel {
+  width: 40px;
+  flex: none;
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent-light);
+}
+
+.nowDot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+}
+
+.nowLine {
+  flex: 1;
+  height: 1.5px;
+  background: var(--color-accent);
+}
+
+@media (min-width: 769px) {
+  .scroller {
+    padding: 14px 20px 24px;
+  }
+
+  .hourLabel {
+    width: 46px;
+    font-size: 11px;
+  }
+
+  .layer {
+    left: 52px;
+    right: 4px;
+  }
+
+  .block {
+    gap: 12px;
+    padding: 0 14px;
+    border-radius: 12px;
+  }
+
+  .iconBox {
+    width: 20px;
+    height: 20px;
+  }
+
+  .icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .name {
+    font-size: 14.5px;
+  }
+
+  .meta {
+    font-size: 12px;
+  }
+
+  .metaLevel {
+    display: inline;
+  }
+
+  .time {
+    font-size: 12px;
+  }
+
+  .check {
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+  }
+
+  .now {
+    left: -52px;
+    right: 4px;
+  }
+
+  .nowLabel {
+    width: 46px;
+    font-size: 11px;
+  }
+}

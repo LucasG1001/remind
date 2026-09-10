@@ -13,6 +13,8 @@ export interface Habit {
   icon: string;
   selectedDays: DayOfWeek[];
   targetCount: number;
+  startTime: string | null;
+  endTime: string | null;
   completions: HabitCompletion[];
   currentStreak: number;
   longestStreak: number;
@@ -27,4 +29,6 @@ export interface HabitFormData {
   icon: string;
   selectedDays: DayOfWeek[];
   targetCount: number;
+  startTime: string | null;
+  endTime: string | null;
 }

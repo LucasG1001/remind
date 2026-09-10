@@ -1,7 +1,6 @@
 import { z } from "zod";
-import { DATE_RE } from "../lib/validation.js";
+import { DATE_RE, TIME_RE } from "../lib/validation.js";
 
-const timeRe = /^\d{2}:\d{2}$/;
 
 const recurUnit = z.enum(["day", "week", "month", "year"]);
 
@@ -10,7 +9,7 @@ const baseReminder = z
     title: z.string().min(1, "Informe um título.").max(200),
     notes: z.string().max(2000).nullish(),
     date: z.string().regex(DATE_RE, "Data inválida (use YYYY-MM-DD)."),
-    time: z.string().regex(timeRe, "Hora inválida (use HH:MM).").nullish(),
+    time: z.string().regex(TIME_RE, "Hora inválida (use HH:MM).").nullish(),
     recurInterval: z.number().int().positive().nullish(),
     recurUnit: recurUnit.nullish(),
     recurWeekday: z.number().int().min(0).max(6).nullish(),
@@ -27,7 +26,7 @@ export const updateReminderSchema = baseReminder;
 
 export const rescheduleSchema = z.object({
   date: z.string().regex(DATE_RE, "Data inválida (use YYYY-MM-DD)."),
-  time: z.string().regex(timeRe, "Hora inválida (use HH:MM).").nullish(),
+  time: z.string().regex(TIME_RE, "Hora inválida (use HH:MM).").nullish(),
 });
 
 export const snoozeSchema = z.object({

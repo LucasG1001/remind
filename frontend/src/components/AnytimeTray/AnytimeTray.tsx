@@ -1,58 +1,41 @@
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { Habit } from "../../types/habit";
-import { getToday, getTodayKey, isScheduledDay } from "../../utils/dateUtils";
+import type { HabitEntry } from "../../utils/agendaGrid";
+import { habitState } from "../../utils/agendaGrid";
 import { getHabitIcon } from "../../utils/habitIcons";
 import { moveRelativeTo } from "../../utils/reorder";
 import { LONG_PRESS_DRAG_MS, MOVE_THRESHOLD } from "../../hooks/useLongPress";
+import { useDismiss } from "../../hooks/useDismiss";
 import { CheckMarkIcon } from "../Sidebar/Sidebar.icons";
-import { WeekBars } from "../WeekBars/WeekBars";
-import styles from "./TodayHabitList.module.css";
+import styles from "./AnytimeTray.module.css";
 
-interface TodayHabitListProps {
-  habits: Habit[];
-  onToggle: (habitId: string, dateKey: string, nextCount: number) => void;
+interface AnytimeTrayProps {
+  entries: HabitEntry[];
+  onToggle: (entry: HabitEntry) => void;
   onOpen: (habit: Habit) => void;
-  onReorder: (orderedPendingIds: string[]) => void;
+  onReorder: (orderedIds: string[]) => void;
 }
 
-interface Entry {
-  habit: Habit;
-  count: number;
-  target: number;
-  completed: boolean;
+const OPEN_KEY = "habits-anytime-open";
+const TargetIcon = getHabitIcon("target");
+const CLOSE_DRAG_PX = 90;
+
+function readOpen(): boolean {
+  return localStorage.getItem(OPEN_KEY) === "true";
 }
 
-const DONE_COLLAPSED_KEY = "habits-done-collapsed";
-
-function readCollapsed(): boolean {
-  return localStorage.getItem(DONE_COLLAPSED_KEY) === "true";
-}
-
-function progressLabel(entry: Entry): string {
+function metaLabel(entry: HabitEntry): string {
   const { habit, count, target, completed } = entry;
-  if (target > 1 && !completed) return `${count}/${target} hoje`;
+  if (target > 1 && !completed) return `${count} de ${target}`;
   if (habit.currentStreak === 0) return "sem sequência";
   return `${habit.currentStreak} ${habit.currentStreak === 1 ? "dia" : "dias"}`;
 }
 
-export function TodayHabitList({ habits, onToggle, onOpen, onReorder }: TodayHabitListProps) {
-  const todayKey = getTodayKey();
-
-  const entries = useMemo<Entry[]>(() => {
-    const date = getToday();
-    return habits
-      .filter((habit) => isScheduledDay(date, habit.selectedDays))
-      .map((habit) => {
-        const completion = habit.completions.find((c) => c.date === todayKey);
-        const target = Math.max(1, habit.targetCount);
-        const count = Math.min(completion?.count ?? 0, target);
-        return { habit, count, target, completed: count >= target };
-      });
-  }, [habits, todayKey]);
-
-  const [collapsed, setCollapsed] = useState(readCollapsed);
+export function AnytimeTray({ entries, onToggle, onOpen, onReorder }: AnytimeTrayProps) {
+  const [open, setOpen] = useState(readOpen);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOrder, setDragOrder] = useState<string[] | null>(null);
+  const [dragY, setDragY] = useState(0);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startRef = useRef({ x: 0, y: 0 });
@@ -62,23 +45,29 @@ export function TodayHabitList({ habits, onToggle, onOpen, onReorder }: TodayHab
   const draggingRef = useRef(false);
   const draggingIdRef = useRef<string | null>(null);
   const dragOrderRef = useRef<string[] | null>(null);
+  const sheetDragRef = useRef<number | null>(null);
+  const dragYRef = useRef(0);
 
-  const entryById = new Map(entries.map((e) => [e.habit.id, e]));
-  const pendingIds = entries.filter((e) => !e.completed).map((e) => e.habit.id);
-  const doneEntries = entries.filter((e) => e.completed);
+  const setOpenState = (next: boolean) => {
+    setOpen(next);
+    localStorage.setItem(OPEN_KEY, String(next));
+  };
 
-  const renderIds = dragOrder
-    ? dragOrder.filter((id) => pendingIds.includes(id))
-    : pendingIds;
+  const close = () => {
+    setDragY(0);
+    dragYRef.current = 0;
+    setOpenState(false);
+  };
+
+  useDismiss(close, undefined, open);
+
+  const pending = entries.filter((e) => !e.completed);
+  const done = entries.filter((e) => e.completed);
+  const pendingIds = pending.map((e) => e.habit.id);
   const canReorder = pendingIds.length > 1;
 
-  const toggleCollapsed = () => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem(DONE_COLLAPSED_KEY, String(next));
-      return next;
-    });
-  };
+  const entryById = new Map(entries.map((e) => [e.habit.id, e]));
+  const renderIds = dragOrder ? dragOrder.filter((id) => pendingIds.includes(id)) : pendingIds;
 
   const clearTimer = () => {
     if (timerRef.current) {
@@ -144,22 +133,16 @@ export function TodayHabitList({ habits, onToggle, onOpen, onReorder }: TodayHab
     document.addEventListener("touchmove", blockScroll, { passive: false });
   };
 
-  if (entries.length === 0) {
-    return <p className={styles.empty}>Nenhum hábito agendado para hoje.</p>;
-  }
-
-  const renderRow = (entry: Entry, draggable: boolean) => {
+  const renderItem = (entry: HabitEntry, draggable: boolean) => {
     const { habit, count, target, completed } = entry;
     const Icon = getHabitIcon(habit.icon);
-    const isDragging = draggingId === habit.id;
 
     return (
       <li
         key={habit.id}
         data-drag-id={draggable ? habit.id : undefined}
-        className={`${styles.row} ${completed ? styles.rowDone : ""} ${
-          isDragging ? styles.dragging : ""
-        }`}
+        data-state={habitState({ completed, endMin: null }, 0)}
+        className={`${styles.item} ${draggingId === habit.id ? styles.dragging : ""}`}
         onPointerDown={(e) => {
           clearTimer();
           movedRef.current = false;
@@ -177,7 +160,7 @@ export function TodayHabitList({ habits, onToggle, onOpen, onReorder }: TodayHab
           }
         }}
         onPointerMove={(e) => {
-          if (draggingRef.current) return;
+          if (draggingRef.current || e.buttons === 0) return;
           if (
             Math.abs(e.clientX - startRef.current.x) > MOVE_THRESHOLD ||
             Math.abs(e.clientY - startRef.current.y) > MOVE_THRESHOLD
@@ -209,40 +192,27 @@ export function TodayHabitList({ habits, onToggle, onOpen, onReorder }: TodayHab
             onOpen(habit);
           }}
         >
-          <Icon className={styles.icon} />
+          <span className={styles.iconBox}>
+            <Icon className={styles.icon} />
+          </span>
         </button>
 
         <button
           type="button"
           className={styles.main}
           aria-pressed={completed}
-          aria-label={
-            target > 1 ? `${habit.name} — ${count} de ${target}` : habit.name
-          }
+          aria-label={target > 1 ? `${habit.name} — ${count} de ${target}` : habit.name}
           onPointerUp={() => {
             if (draggingRef.current) return;
             clearTimer();
-            if (!movedRef.current && !longPressRef.current) {
-              onToggle(habit.id, todayKey, count >= target ? 0 : count + 1);
-            }
+            if (!movedRef.current && !longPressRef.current) onToggle(entry);
             movedRef.current = false;
           }}
         >
-          <span className={styles.text}>
+          <span className={styles.body}>
             <span className={styles.name}>{habit.name}</span>
-            <span className={styles.subtitle}>
-              {progressLabel(entry)}
-              <span className={styles.separator} aria-hidden="true">·</span>
-              <span className={styles.level}>Nv {habit.level}</span>
-            </span>
+            <span className={styles.meta}>{metaLabel(entry)}</span>
           </span>
-
-          <WeekBars
-            completions={habit.completions}
-            selectedDays={habit.selectedDays}
-            createdAt={habit.createdAt}
-          />
-
           <span className={styles.check} aria-hidden="true">
             {completed && <CheckMarkIcon className={styles.checkIcon} />}
           </span>
@@ -252,27 +222,80 @@ export function TodayHabitList({ habits, onToggle, onOpen, onReorder }: TodayHab
   };
 
   return (
-    <div className={styles.wrapper}>
-      <ul className={styles.list}>
-        {renderIds.map((id) => {
-          const entry = entryById.get(id);
-          return entry ? renderRow(entry, true) : null;
-        })}
-      </ul>
+    <aside
+      className={styles.root}
+      data-open={open}
+      data-empty={entries.length === 0 || undefined}
+    >
+      <span className={styles.grabber} aria-hidden="true" />
 
-      {doneEntries.length > 0 && (
-        <>
-          <div className={styles.doneHeader}>
-            <span className={styles.doneTitle}>Feitos · {doneEntries.length}</span>
-            <button type="button" className={styles.doneToggle} onClick={toggleCollapsed}>
-              {collapsed ? "mostrar" : "esconder"}
-            </button>
-          </div>
-          {!collapsed && (
-            <ul className={styles.list}>{doneEntries.map((entry) => renderRow(entry, false))}</ul>
-          )}
-        </>
-      )}
-    </div>
+      <button type="button" className={styles.strip} onClick={() => setOpenState(true)}>
+        <span className={styles.stripIcon}>
+          <TargetIcon className={styles.stripGlyph} />
+        </span>
+        <span className={styles.stripText}>
+          <span className={styles.stripTitle}>
+            A qualquer hora · {pending.length} pendentes
+          </span>
+          <span className={styles.stripPreview}>{pending.map((e) => e.habit.name).join(", ")}</span>
+        </span>
+        <span className={styles.stripAction}>abrir</span>
+      </button>
+
+      {open && <div className={styles.scrim} onPointerDown={close} aria-hidden="true" />}
+
+      <div
+        className={`${styles.sheet} ${dragY ? styles.sheetDragging : ""}`}
+        style={dragY ? { transform: `translateY(${dragY}px)` } : undefined}
+      >
+        <span
+          className={styles.sheetGrabber}
+          aria-hidden="true"
+          onPointerDown={(e) => {
+            sheetDragRef.current = e.clientY;
+            e.currentTarget.setPointerCapture(e.pointerId);
+          }}
+          onPointerMove={(e) => {
+            if (sheetDragRef.current === null) return;
+            const next = Math.max(0, e.clientY - sheetDragRef.current);
+            dragYRef.current = next;
+            setDragY(next);
+          }}
+          onPointerUp={() => {
+            sheetDragRef.current = null;
+            if (dragYRef.current > CLOSE_DRAG_PX) close();
+            else {
+              dragYRef.current = 0;
+              setDragY(0);
+            }
+          }}
+          onPointerCancel={() => {
+            sheetDragRef.current = null;
+            dragYRef.current = 0;
+            setDragY(0);
+          }}
+        />
+
+        <div className={styles.sheetHeader}>
+          <span className={styles.sheetTitle}>A qualquer hora · {entries.length}</span>
+          <span className={styles.sheetDone}>{done.length} feito(s)</span>
+          <button type="button" className={styles.sheetToggle} onClick={close}>
+            recolher
+          </button>
+        </div>
+
+        {entries.length === 0 ? (
+          <p className={styles.sheetEmpty}>Nada sem horário</p>
+        ) : (
+          <ul className={styles.list}>
+            {renderIds.map((id) => {
+              const entry = entryById.get(id);
+              return entry ? renderItem(entry, true) : null;
+            })}
+            {done.map((entry) => renderItem(entry, false))}
+          </ul>
+        )}
+      </div>
+    </aside>
   );
 }

@@ -148,6 +148,13 @@
   line-height: 1.4;
 }
 
+.habitSchedule {
+  font-size: 12.5px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent-light);
+  line-height: 1.4;
+}
+
 .metrics {
   display: flex;
   gap: var(--spacing-sm);
