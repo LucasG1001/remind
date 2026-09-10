@@ -12,7 +12,7 @@ import {
   hourTop,
 } from "../../utils/agendaGrid";
 import { floorToQuarter } from "../../utils/timeWindow";
-import { getHabitIcon } from "../../utils/habitIcons";
+import { getIcon } from "../../utils/iconLibrary";
 import { LONG_PRESS_DRAG_MS, MOVE_THRESHOLD } from "../../hooks/useLongPress";
 import { CheckMarkIcon } from "../Sidebar/Sidebar.icons";
 import styles from "./DayGrid.module.css";
@@ -107,7 +107,7 @@ export function DayGrid({ layout, nowMinutes, onToggle, onOpen, onCreateAt }: Da
           {blocks.map((block) => {
             const { entry } = block;
             const { habit, count, target, completed } = entry;
-            const Icon = getHabitIcon(habit.icon);
+            const Icon = getIcon(habit.icon);
             const state = habitState({ completed, endMin: block.endMin }, nowMinutes);
             const range = formatRange(block.startMin, block.minutes);
             const short = block.height < 44;

@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useProjects } from "../../hooks/useProjects";
 import { ProjectSwitcher } from "../../components/ProjectSwitcher/ProjectSwitcher";
 import { BoardListColumn } from "../../components/BoardList/BoardList";
 import { InlineTextEdit } from "../../components/InlineTextEdit/InlineTextEdit";
 import { CardDetailPanel } from "../../components/CardDetailPanel/CardDetailPanel";
+import { ProjectTagModal } from "../../components/ProjectTagModal/ProjectTagModal";
+import { TagChip } from "../../components/TagChip/TagChip";
 import { moveCardInBoard, moveRelativeTo } from "../../utils/reorder";
 import { LONG_PRESS_DRAG_MS, MOVE_THRESHOLD } from "../../hooks/useLongPress";
 import { alertApiError } from "../../utils/apiError";
@@ -44,6 +46,7 @@ export function ProjectsPage() {
     projects,
     currentProjectId,
     board,
+    tags,
     loading,
     boardLoading,
     error,
@@ -59,6 +62,9 @@ export function ProjectsPage() {
     updateCard,
     deleteCard,
     moveCard,
+    createTag,
+    updateTag,
+    deleteTag,
   } = useProjects();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -68,6 +74,8 @@ export function ProjectsPage() {
   const [composerListId, setComposerListId] = useState<string | null>(null);
   const [addingList, setAddingList] = useState(false);
   const [creatingProject, setCreatingProject] = useState(false);
+  const [tagModalOpen, setTagModalOpen] = useState(false);
+  const [activeTagIds, setActiveTagIds] = useState<string[]>([]);
 
   const [dragCardId, setDragCardId] = useState<string | null>(null);
   const [dragListId, setDragListId] = useState<string | null>(null);
@@ -467,6 +475,30 @@ export function ProjectsPage() {
     createList(name).catch((err) => alertApiError(err, "Não foi possível criar a lista."));
   };
 
+  // Tag excluída (ou troca de projeto) deixa de filtrar: o filtro é derivado das tags vivas.
+  const activeTags = activeTagIds.filter((id) => tags.some((tag) => tag.id === id));
+
+  const toggleTagFilter = (tagId: string) => {
+    setActiveTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  };
+
+  const tagCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const list of board ?? []) {
+      for (const card of list.cards) {
+        for (const id of card.tagIds) counts.set(id, (counts.get(id) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [board]);
+
+  const visibleCardsOf = (list: BoardList) =>
+    activeTags.length === 0
+      ? list.cards
+      : list.cards.filter((card) => card.tagIds.some((id) => activeTags.includes(id)));
+
   const currentProject = projects.find((p) => p.id === currentProjectId) ?? null;
   const lists = board;
   const dragging = Boolean(dragCardId || dragListId);
@@ -493,6 +525,28 @@ export function ProjectsPage() {
             deleteProject(id).catch((err) => alertApiError(err, "Não foi possível excluir o projeto."))
           }
         />
+
+        {currentProject && (
+          <div className={styles.tagBar}>
+            {tags.map((tag) => (
+              <TagChip
+                key={tag.id}
+                tag={tag}
+                count={tagCounts.get(tag.id) ?? 0}
+                muted={activeTags.length > 0 && !activeTags.includes(tag.id)}
+                active={activeTags.includes(tag.id)}
+                onClick={() => toggleTagFilter(tag.id)}
+              />
+            ))}
+            <button
+              type="button"
+              className={styles.manageTags}
+              onClick={() => setTagModalOpen(true)}
+            >
+              + Tags
+            </button>
+          </div>
+        )}
       </header>
 
       {loading && <p className={styles.muted}>Carregando…</p>}
@@ -538,6 +592,8 @@ export function ProjectsPage() {
                 <BoardListColumn
                   key={list.id}
                   list={list}
+                  visibleCards={visibleCardsOf(list)}
+                  tags={tags}
                   dragging={dragListId === list.id}
                   dragCardId={dragCardId}
                   dropCardId={cardDrop?.overCardId ?? null}
@@ -606,11 +662,23 @@ export function ProjectsPage() {
       {detailCard && (
         <CardDetailPanel
           card={detailCard}
+          tags={tags}
           onSave={(patch) => handleSaveCardDetail(detailCard, patch)}
           onDelete={(card) =>
             deleteCard(card.id).catch((err) => alertApiError(err, "Não foi possível excluir o cartão."))
           }
+          onManageTags={() => setTagModalOpen(true)}
           onClose={() => setDetailCardId(null)}
+        />
+      )}
+
+      {tagModalOpen && (
+        <ProjectTagModal
+          tags={tags}
+          onCreate={createTag}
+          onUpdate={updateTag}
+          onDelete={deleteTag}
+          onClose={() => setTagModalOpen(false)}
         />
       )}
     </div>

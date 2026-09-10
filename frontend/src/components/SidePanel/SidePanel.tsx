@@ -2,7 +2,7 @@ import { createElement, useMemo } from "react";
 import type { Habit } from "../../types/habit";
 import { getTodayKey } from "../../utils/dateUtils";
 import { formatSchedule } from "../../utils/agendaGrid";
-import { getHabitIcon } from "../../utils/habitIcons";
+import { getIcon } from "../../utils/iconLibrary";
 import { calculateRecentRate } from "../../utils/streakUtils";
 import { formatSelectedDays } from "../../utils/weekdays";
 import { useDismiss } from "../../hooks/useDismiss";
@@ -59,7 +59,7 @@ export function SidePanel({ habit, onClose, onEdit, onDelete, onSetCount }: Side
               aria-label="Editar hábito"
               title="Editar hábito"
             >
-              {createElement(getHabitIcon("edit"), { className: styles.actionIcon })}
+              {createElement(getIcon("edit"), { className: styles.actionIcon })}
             </button>
             <ConfirmButton
               className={`${styles.iconAction} ${styles.deleteAction}`}
@@ -77,7 +77,7 @@ export function SidePanel({ habit, onClose, onEdit, onDelete, onSetCount }: Side
         <div className={styles.body}>
           <div className={styles.identity}>
             <span className={styles.identityIcon}>
-              {createElement(getHabitIcon(habit.icon), { className: styles.identityGlyph })}
+              {createElement(getIcon(habit.icon), { className: styles.identityGlyph })}
             </span>
             <span className={styles.identityText}>
               <h2 className={styles.habitName}>{habit.name}</h2>

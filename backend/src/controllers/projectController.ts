@@ -2,11 +2,13 @@ import {
   createCardSchema,
   createListSchema,
   createProjectSchema,
+  createTagSchema,
   moveCardSchema,
   reorderListsSchema,
   updateCardSchema,
   updateListSchema,
   updateProjectSchema,
+  updateTagSchema,
 } from "../schemas/project.js";
 import * as projectModel from "../models/projectModel.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
@@ -15,6 +17,7 @@ import { parseBody, requireUuid } from "../lib/validation.js";
 const PROJECT_NOT_FOUND = "Projeto não encontrado.";
 const LIST_NOT_FOUND = "Lista não encontrada.";
 const CARD_NOT_FOUND = "Cartão não encontrado.";
+const TAG_NOT_FOUND = "Tag não encontrada.";
 
 export const getProjects = asyncHandler("Erro ao buscar projetos.", async (_req, res) => {
   const projects = await projectModel.findAllProjects();
@@ -161,4 +164,41 @@ export const moveCard = asyncHandler("Erro ao mover cartão.", async (req, res) 
     return;
   }
   res.json(board);
+});
+
+export const createTag = asyncHandler("Erro ao criar tag.", async (req, res) => {
+  const projectId = String(req.params.id);
+  if (!requireUuid(res, projectId, PROJECT_NOT_FOUND)) return;
+  const body = parseBody(res, createTagSchema, req.body);
+  if (!body) return;
+  const tag = await projectModel.createTag(projectId, body.name, body.color, body.icon);
+  if (!tag) {
+    res.status(404).json({ error: PROJECT_NOT_FOUND });
+    return;
+  }
+  res.status(201).json(tag);
+});
+
+export const updateTag = asyncHandler("Erro ao atualizar tag.", async (req, res) => {
+  const tagId = String(req.params.tagId);
+  if (!requireUuid(res, tagId, TAG_NOT_FOUND)) return;
+  const body = parseBody(res, updateTagSchema, req.body);
+  if (!body) return;
+  const tag = await projectModel.updateTag(tagId, body);
+  if (!tag) {
+    res.status(404).json({ error: TAG_NOT_FOUND });
+    return;
+  }
+  res.json(tag);
+});
+
+export const removeTag = asyncHandler("Erro ao remover tag.", async (req, res) => {
+  const tagId = String(req.params.tagId);
+  if (!requireUuid(res, tagId, TAG_NOT_FOUND)) return;
+  const removed = await projectModel.removeTag(tagId);
+  if (!removed) {
+    res.status(404).json({ error: TAG_NOT_FOUND });
+    return;
+  }
+  res.status(204).send();
 });

@@ -186,6 +186,37 @@ export async function migrate(): Promise<void> {
   await pool.query(`ALTER TABLE cards ADD COLUMN IF NOT EXISTS checklist TEXT NOT NULL DEFAULT '[]'`);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS project_tags (
+      id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      project_id  UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      name        TEXT NOT NULL,
+      color       TEXT NOT NULL,
+      icon        TEXT NOT NULL DEFAULT 'target',
+      position    INTEGER NOT NULL DEFAULT 0,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS project_tags_project_idx ON project_tags (project_id);
+  `);
+
+  // Vínculo N:N cartão/tag. As duas FKs cascateiam: é o que faz excluir uma tag
+  // (ou um cartão) limpar o vínculo em todos os cartões sem código de limpeza.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS card_tags (
+      card_id  UUID NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+      tag_id   UUID NOT NULL REFERENCES project_tags(id) ON DELETE CASCADE,
+      PRIMARY KEY (card_id, tag_id)
+    );
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS card_tags_tag_idx ON card_tags (tag_id);
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS flashcard_categories (
       id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       name        TEXT NOT NULL,

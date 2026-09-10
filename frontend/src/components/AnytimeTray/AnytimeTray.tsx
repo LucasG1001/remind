@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import type { Habit } from "../../types/habit";
 import type { HabitEntry } from "../../utils/agendaGrid";
 import { habitState } from "../../utils/agendaGrid";
-import { getHabitIcon } from "../../utils/habitIcons";
+import { getIcon } from "../../utils/iconLibrary";
 import { moveRelativeTo } from "../../utils/reorder";
 import { LONG_PRESS_DRAG_MS, MOVE_THRESHOLD } from "../../hooks/useLongPress";
 import { useDismiss } from "../../hooks/useDismiss";
@@ -17,7 +17,7 @@ interface AnytimeTrayProps {
 }
 
 const OPEN_KEY = "habits-anytime-open";
-const TargetIcon = getHabitIcon("target");
+const TargetIcon = getIcon("target");
 const CLOSE_DRAG_PX = 90;
 
 function readOpen(): boolean {
@@ -135,7 +135,7 @@ export function AnytimeTray({ entries, onToggle, onOpen, onReorder }: AnytimeTra
 
   const renderItem = (entry: HabitEntry, draggable: boolean) => {
     const { habit, count, target, completed } = entry;
-    const Icon = getHabitIcon(habit.icon);
+    const Icon = getIcon(habit.icon);
 
     return (
       <li

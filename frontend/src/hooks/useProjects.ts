@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import type { BoardList, Card, CardPatch, Project } from "../types/project";
+import type {
+  BoardList,
+  Card,
+  CardPatch,
+  Project,
+  ProjectTag,
+  ProjectTagFormData,
+} from "../types/project";
 import {
   fetchProjects,
   fetchBoard,
@@ -14,6 +21,9 @@ import {
   updateCard as apiUpdateCard,
   deleteCard as apiDeleteCard,
   moveCard as apiMoveCard,
+  createTag as apiCreateTag,
+  updateTag as apiUpdateTag,
+  deleteTag as apiDeleteTag,
 } from "../services/projectService";
 import { moveCardInBoard } from "../utils/reorder";
 
@@ -23,6 +33,7 @@ export function useProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [board, setBoard] = useState<BoardList[] | null>(null);
+  const [tags, setTags] = useState<ProjectTag[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +59,9 @@ export function useProjects() {
     let active = true;
     fetchBoard(currentProjectId)
       .then((data) => {
-        if (active) setBoard(data.lists);
+        if (!active) return;
+        setBoard(data.lists);
+        setTags(data.tags);
       })
       .catch(() => {
         if (active) setError("Não foi possível carregar o quadro.");
@@ -61,6 +74,7 @@ export function useProjects() {
   const selectProject = useCallback((id: string) => {
     localStorage.setItem(PROJECT_STORAGE_KEY, id);
     setBoard(null);
+    setTags([]);
     setCurrentProjectId(id);
   }, []);
 
@@ -69,6 +83,7 @@ export function useProjects() {
     setProjects((prev) => [...prev, created]);
     localStorage.setItem(PROJECT_STORAGE_KEY, created.id);
     setBoard(null);
+    setTags([]);
     setCurrentProjectId(created.id);
   }, []);
 
@@ -87,6 +102,7 @@ export function useProjects() {
           if (next) localStorage.setItem(PROJECT_STORAGE_KEY, next);
           else localStorage.removeItem(PROJECT_STORAGE_KEY);
           setBoard(null);
+          setTags([]);
           setCurrentProjectId(next);
         }
         return remaining;
@@ -195,10 +211,43 @@ export function useProjects() {
     }
   }, []);
 
+  const createTag = useCallback(
+    async (data: ProjectTagFormData) => {
+      if (!currentProjectId) return;
+      const created = await apiCreateTag(currentProjectId, data);
+      setTags((prev) => [...prev, created]);
+    },
+    [currentProjectId]
+  );
+
+  // Os chips resolvem a tag pelo id a partir deste array: trocar a linha aqui
+  // repinta a tag em todos os cartões que a usam.
+  const updateTag = useCallback(async (tagId: string, data: ProjectTagFormData) => {
+    const updated = await apiUpdateTag(tagId, data);
+    setTags((prev) => prev.map((tag) => (tag.id === tagId ? updated : tag)));
+  }, []);
+
+  // O banco cascateia card_tags; aqui espelhamos isso no board carregado.
+  const deleteTag = useCallback(async (tagId: string) => {
+    await apiDeleteTag(tagId);
+    setTags((prev) => prev.filter((tag) => tag.id !== tagId));
+    setBoard((prev) =>
+      prev
+        ? prev.map((l) => ({
+            ...l,
+            cards: l.cards.map((c) =>
+              c.tagIds.includes(tagId) ? { ...c, tagIds: c.tagIds.filter((id) => id !== tagId) } : c
+            ),
+          }))
+        : prev
+    );
+  }, []);
+
   return {
     projects,
     currentProjectId,
     board,
+    tags,
     loading,
     boardLoading,
     error,
@@ -214,5 +263,8 @@ export function useProjects() {
     updateCard,
     deleteCard,
     moveCard,
+    createTag,
+    updateTag,
+    deleteTag,
   };
 }

@@ -134,3 +134,10 @@
     opacity: 0.6;
   }
 }
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}

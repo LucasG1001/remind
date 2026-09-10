@@ -11,6 +11,23 @@ export interface ChecklistItem {
   done: boolean;
 }
 
+export interface ProjectTag {
+  id: string;
+  projectId: string;
+  name: string;
+  color: string;
+  icon: string;
+  position: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectTagFormData {
+  name: string;
+  color: string;
+  icon: string;
+}
+
 export interface Card {
   id: string;
   listId: string;
@@ -19,6 +36,7 @@ export interface Card {
   description: string;
   images: string[];
   checklist: ChecklistItem[];
+  tagIds: string[];
   position: number;
   createdAt: string;
   updatedAt: string;
@@ -36,6 +54,7 @@ export interface BoardList {
 
 export interface ProjectBoard extends Project {
   lists: BoardList[];
+  tags: ProjectTag[];
 }
 
 export interface CardPatch {
@@ -44,4 +63,5 @@ export interface CardPatch {
   description?: string;
   images?: string[];
   checklist?: ChecklistItem[];
+  tagIds?: string[];
 }

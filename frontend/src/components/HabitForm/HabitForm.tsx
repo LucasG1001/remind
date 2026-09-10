@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DayOfWeek, HabitFormData } from "../../types/habit";
-import { DEFAULT_HABIT_ICON_KEY, HABIT_ICONS } from "../../utils/habitIcons";
+import { DEFAULT_ICON_KEY, ICON_LIBRARY } from "../../utils/iconLibrary";
 import {
   MIN_HABIT_DURATION_MIN,
   TIME_WINDOW_MESSAGES,
@@ -61,12 +61,12 @@ export function HabitForm({
   const seedDuration = initialDuration(initialData);
 
   const [name, setName] = useState(initialData?.name ?? "");
-  const [icon, setIcon] = useState(initialData?.icon ?? DEFAULT_HABIT_ICON_KEY);
+  const [icon, setIcon] = useState(initialData?.icon ?? DEFAULT_ICON_KEY);
   const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>(initialData?.selectedDays ?? []);
   const [targetCount, setTargetCount] = useState(initialData?.targetCount ?? MIN_TARGET);
   const [daysError, setDaysError] = useState("");
   const [iconsExpanded, setIconsExpanded] = useState(
-    () => HABIT_ICONS.findIndex((entry) => entry.key === (initialData?.icon ?? "")) >= COLLAPSED_ICONS
+    () => ICON_LIBRARY.findIndex((entry) => entry.key === (initialData?.icon ?? "")) >= COLLAPSED_ICONS
   );
   const [hasTime, setHasTime] = useState(Boolean(seedStart));
   const [startTime, setStartTime] = useState(seedStart);
@@ -160,8 +160,8 @@ export function HabitForm({
     setDragY(value);
   }
 
-  const visibleIcons = iconsExpanded ? HABIT_ICONS : HABIT_ICONS.slice(0, COLLAPSED_ICONS);
-  const hiddenIcons = HABIT_ICONS.length - COLLAPSED_ICONS;
+  const visibleIcons = iconsExpanded ? ICON_LIBRARY : ICON_LIBRARY.slice(0, COLLAPSED_ICONS);
+  const hiddenIcons = ICON_LIBRARY.length - COLLAPSED_ICONS;
   const isValid = name.trim().length > 0 && selectedDays.length > 0 && timeValid;
   const title = mode === "create" ? "Novo hábito" : "Editar hábito";
 

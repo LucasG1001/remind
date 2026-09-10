@@ -1,23 +1,34 @@
 import { useState } from "react";
-import type { Card, CardPatch, ChecklistItem } from "../../types/project";
+import type { Card, CardPatch, ChecklistItem, ProjectTag } from "../../types/project";
 import { useDismiss } from "../../hooks/useDismiss";
 import { ConfirmButton } from "../ConfirmButton/ConfirmButton";
 import { ImagePasteArea } from "../ImagePasteArea/ImagePasteArea";
+import { TagPicker } from "../TagPicker/TagPicker";
 import styles from "./CardDetailPanel.module.css";
 
 interface CardDetailPanelProps {
   card: Card;
+  tags: ProjectTag[];
   onSave: (patch: CardPatch) => void;
   onDelete: (card: Card) => void;
+  onManageTags: () => void;
   onClose: () => void;
 }
 
-export function CardDetailPanel({ card, onSave, onDelete, onClose }: CardDetailPanelProps) {
+export function CardDetailPanel({
+  card,
+  tags,
+  onSave,
+  onDelete,
+  onManageTags,
+  onClose,
+}: CardDetailPanelProps) {
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description);
   const [images, setImages] = useState<string[]>(card.images);
   const [done, setDone] = useState(card.done);
   const [checklist, setChecklist] = useState<ChecklistItem[]>(card.checklist);
+  const [tagIds, setTagIds] = useState<string[]>(card.tagIds);
   const [newItem, setNewItem] = useState("");
 
   useDismiss(onClose);
@@ -29,6 +40,12 @@ export function CardDetailPanel({ card, onSave, onDelete, onClose }: CardDetailP
     if (!text) return;
     setChecklist([...checklist, { text, done: false }]);
     setNewItem("");
+  }
+
+  function toggleTag(tagId: string) {
+    setTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
   }
 
   function toggleItem(index: number) {
@@ -50,6 +67,7 @@ export function CardDetailPanel({ card, onSave, onDelete, onClose }: CardDetailP
       images,
       done,
       checklist: checklist.map((item) => ({ ...item, text: item.text.trim() })).filter((item) => item.text),
+      tagIds: tagIds.filter((id) => tags.some((tag) => tag.id === id)),
     });
     onClose();
   }
@@ -90,6 +108,8 @@ export function CardDetailPanel({ card, onSave, onDelete, onClose }: CardDetailP
             onImagesChange={setImages}
             placeholder="Detalhes, links, passos… (cole ou adicione imagens)"
           />
+
+          <TagPicker tags={tags} selected={tagIds} onToggle={toggleTag} onManage={onManageTags} />
 
           <div className={styles.checklist}>
             <div className={styles.checklistHead}>

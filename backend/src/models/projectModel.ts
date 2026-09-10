@@ -14,6 +14,9 @@ import type {
   ProjectBoard,
   ProjectPatch,
   ProjectRow,
+  ProjectTag,
+  ProjectTagPatch,
+  ProjectTagRow,
 } from "../types/project.js";
 
 function parseChecklist(raw: unknown): ChecklistItem[] {
@@ -27,6 +30,40 @@ function parseChecklist(raw: unknown): ChecklistItem[] {
   }
 }
 
+function toTag(row: ProjectTagRow): ProjectTag {
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    name: row.name,
+    color: row.color,
+    icon: row.icon,
+    position: row.position,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+// Vínculos das tags dos cartões alcançados pelo filtro, na ordem das tags.
+async function loadCardTagIds(where: string, params: unknown[]): Promise<Map<string, string[]>> {
+  const result = await pool.query<{ card_id: string; tag_id: string }>(
+    `SELECT ct.card_id, ct.tag_id
+       FROM card_tags ct
+       JOIN cards c ON c.id = ct.card_id
+       JOIN board_lists l ON l.id = c.list_id
+       JOIN project_tags t ON t.id = ct.tag_id
+      WHERE ${where}
+      ORDER BY t.position ASC, t.created_at ASC`,
+    params
+  );
+  const byCard = new Map<string, string[]>();
+  for (const row of result.rows) {
+    const current = byCard.get(row.card_id);
+    if (current) current.push(row.tag_id);
+    else byCard.set(row.card_id, [row.tag_id]);
+  }
+  return byCard;
+}
+
 function toProject(row: ProjectRow): Project {
   return {
     id: row.id,
@@ -37,7 +74,7 @@ function toProject(row: ProjectRow): Project {
   };
 }
 
-function toCard(row: CardRow): Card {
+function toCard(row: CardRow, tagIds: string[]): Card {
   return {
     id: row.id,
     listId: row.list_id,
@@ -46,19 +83,26 @@ function toCard(row: CardRow): Card {
     description: row.description ?? "",
     images: row.images ?? [],
     checklist: parseChecklist(row.checklist),
+    tagIds,
     position: row.position,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
-function toBoardList(row: BoardListRow, cardRows: CardRow[]): BoardList {
+function toBoardList(
+  row: BoardListRow,
+  cardRows: CardRow[],
+  tagIdsByCard: Map<string, string[]>
+): BoardList {
   return {
     id: row.id,
     projectId: row.project_id,
     name: row.name,
     position: row.position,
-    cards: cardRows.filter((c) => c.list_id === row.id).map(toCard),
+    cards: cardRows
+      .filter((c) => c.list_id === row.id)
+      .map((c) => toCard(c, tagIdsByCard.get(c.id) ?? [])),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -87,9 +131,16 @@ export async function findBoard(projectId: string): Promise<ProjectBoard | null>
     [projectId]
   );
 
+  const tags = await pool.query<ProjectTagRow>(
+    "SELECT * FROM project_tags WHERE project_id = $1 ORDER BY position ASC, created_at ASC",
+    [projectId]
+  );
+  const tagIdsByCard = await loadCardTagIds("l.project_id = $1", [projectId]);
+
   return {
     ...toProject(project.rows[0]),
-    lists: lists.rows.map((row) => toBoardList(row, cards.rows)),
+    lists: lists.rows.map((row) => toBoardList(row, cards.rows, tagIdsByCard)),
+    tags: tags.rows.map(toTag),
   };
 }
 
@@ -124,7 +175,7 @@ export async function createList(projectId: string, name: string): Promise<Board
      RETURNING *`,
     [projectId, name]
   );
-  return toBoardList(result.rows[0]!, []);
+  return toBoardList(result.rows[0]!, [], new Map());
 }
 
 export async function updateList(id: string, patch: ListPatch): Promise<BoardList | null> {
@@ -135,7 +186,8 @@ export async function updateList(id: string, patch: ListPatch): Promise<BoardLis
     "SELECT * FROM cards WHERE list_id = $1 ORDER BY position ASC, created_at ASC",
     [id]
   );
-  return toBoardList(row, cards.rows);
+  const tagIdsByCard = await loadCardTagIds("c.list_id = $1", [id]);
+  return toBoardList(row, cards.rows, tagIdsByCard);
 }
 
 export async function removeList(id: string): Promise<boolean> {
@@ -165,11 +217,51 @@ export async function createCard(listId: string, title: string): Promise<Card | 
      RETURNING *`,
     [listId, title]
   );
-  return toCard(result.rows[0]!);
+  return toCard(result.rows[0]!, []);
+}
+
+// Substitui o conjunto de tags do cartão. Retorna false quando o cartão não existe
+// (o controller responde 404) e recusa tags de outro projeto com 400 em vez de deixar
+// a violação de FK vazar como 500.
+async function syncCardTags(cardId: string, tagIds: string[]): Promise<boolean> {
+  const unique = [...new Set(tagIds)];
+  return withTransaction(async (client) => {
+    const scope = await client.query<{ project_id: string }>(
+      "SELECT l.project_id FROM cards c JOIN board_lists l ON l.id = c.list_id WHERE c.id = $1",
+      [cardId]
+    );
+    const projectId = scope.rows[0]?.project_id;
+    if (!projectId) return false;
+
+    if (unique.length > 0) {
+      const valid = await client.query(
+        "SELECT id FROM project_tags WHERE project_id = $1 AND id = ANY($2::uuid[])",
+        [projectId, unique]
+      );
+      if ((valid.rowCount ?? 0) !== unique.length) {
+        throw new DomainError("Tag inválida para este projeto.", 400);
+      }
+    }
+
+    await client.query("DELETE FROM card_tags WHERE card_id = $1 AND NOT (tag_id = ANY($2::uuid[]))", [
+      cardId,
+      unique,
+    ]);
+    if (unique.length > 0) {
+      await client.query(
+        `INSERT INTO card_tags (card_id, tag_id)
+         SELECT $1, t FROM UNNEST($2::uuid[]) AS t
+         ON CONFLICT DO NOTHING`,
+        [cardId, unique]
+      );
+    }
+    return true;
+  });
 }
 
 export async function updateCard(id: string, patch: CardPatch): Promise<Card | null> {
-  const { checklist, ...rest } = patch;
+  const { checklist, tagIds, ...rest } = patch;
+  if (tagIds !== undefined && !(await syncCardTags(id, tagIds))) return null;
   const { sets, values, nextIndex } = buildUpdateSet(rest, {
     title: "title",
     done: "done",
@@ -182,7 +274,9 @@ export async function updateCard(id: string, patch: CardPatch): Promise<Card | n
     values.push(JSON.stringify(checklist));
   }
   const row = await updateById<CardRow>("cards", id, sets, values, idIndex);
-  return row ? toCard(row) : null;
+  if (!row) return null;
+  const tagIdsByCard = await loadCardTagIds("c.id = $1", [id]);
+  return toCard(row, tagIdsByCard.get(id) ?? []);
 }
 
 export async function removeCard(id: string): Promise<boolean> {
@@ -233,4 +327,37 @@ export async function moveCard(cardId: string, toListId: string, position: numbe
     return source.project_id;
   });
   return findBoard(projectId);
+}
+
+export async function createTag(
+  projectId: string,
+  name: string,
+  color: string,
+  icon: string
+): Promise<ProjectTag | null> {
+  const project = await pool.query("SELECT id FROM projects WHERE id = $1", [projectId]);
+  if (!project.rows[0]) return null;
+
+  const result = await pool.query<ProjectTagRow>(
+    `INSERT INTO project_tags (project_id, name, color, icon, position)
+     VALUES ($1, $2, $3, $4, ${nextPositionSql("project_tags", "project_id = $1")})
+     RETURNING *`,
+    [projectId, name, color, icon]
+  );
+  return toTag(result.rows[0]!);
+}
+
+export async function updateTag(id: string, patch: ProjectTagPatch): Promise<ProjectTag | null> {
+  const { sets, values, nextIndex } = buildUpdateSet(patch, {
+    name: "name",
+    color: "color",
+    icon: "icon",
+  });
+  const row = await updateById<ProjectTagRow>("project_tags", id, sets, values, nextIndex);
+  return row ? toTag(row) : null;
+}
+
+export async function removeTag(id: string): Promise<boolean> {
+  const result = await pool.query("DELETE FROM project_tags WHERE id = $1", [id]);
+  return (result.rowCount ?? 0) > 0;
 }

@@ -1,8 +1,11 @@
-import type { Card } from "../../types/project";
+import type { Card, ProjectTag } from "../../types/project";
+import { resolveTags } from "../../utils/tagPalette";
+import { TagChip } from "../TagChip/TagChip";
 import styles from "./BoardCard.module.css";
 
 interface BoardCardProps {
   card: Card;
+  tags: ProjectTag[];
   dragging: boolean;
   dropTarget: boolean;
   onPointerDown: (e: React.PointerEvent, card: Card) => void;
@@ -10,7 +13,16 @@ interface BoardCardProps {
   onDelete: (card: Card) => void;
 }
 
-export function BoardCard({ card, dragging, dropTarget, onPointerDown, onToggleDone, onDelete }: BoardCardProps) {
+export function BoardCard({
+  card,
+  tags,
+  dragging,
+  dropTarget,
+  onPointerDown,
+  onToggleDone,
+  onDelete,
+}: BoardCardProps) {
+  const cardTags = resolveTags(tags, card.tagIds);
   const hasDescription = card.description.trim().length > 0;
   const checklistTotal = card.checklist.length;
   const checklistDone = card.checklist.filter((item) => item.done).length;
@@ -47,6 +59,13 @@ export function BoardCard({ card, dragging, dropTarget, onPointerDown, onToggleD
 
       <div className={styles.content}>
         <span className={styles.title}>{card.title}</span>
+        {cardTags.length > 0 && (
+          <span className={styles.tags}>
+            {cardTags.map((tag) => (
+              <TagChip key={tag.id} tag={tag} />
+            ))}
+          </span>
+        )}
         {hasMeta && (
           <span className={styles.meta}>
             {hasDescription && (

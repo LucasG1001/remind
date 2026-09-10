@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { BoardList, Card } from "../../types/project";
+import type { BoardList, Card, ProjectTag } from "../../types/project";
 import { BoardCard } from "../BoardCard/BoardCard";
 import { InlineTextEdit } from "../InlineTextEdit/InlineTextEdit";
 import { useAutoGrow } from "../../hooks/useAutoGrow";
@@ -56,6 +56,8 @@ function AddCardComposer({ onAdd, onClose }: AddCardComposerProps) {
 
 interface BoardListColumnProps {
   list: BoardList;
+  visibleCards: Card[];
+  tags: ProjectTag[];
   dragging: boolean;
   dragCardId: string | null;
   dropCardId: string | null;
@@ -77,6 +79,8 @@ interface BoardListColumnProps {
 
 export function BoardListColumn({
   list,
+  visibleCards,
+  tags,
   dragging,
   dragCardId,
   dropCardId,
@@ -120,7 +124,11 @@ export function BoardListColumn({
         ) : (
           <h3 className={styles.name}>{list.name}</h3>
         )}
-        <span className={styles.count}>{list.cards.length}</span>
+        <span className={styles.count}>
+          {visibleCards.length === list.cards.length
+            ? list.cards.length
+            : `${visibleCards.length}/${list.cards.length}`}
+        </span>
         <button
           type="button"
           className={styles.deleteList}
@@ -136,10 +144,11 @@ export function BoardListColumn({
         className={`${styles.cards} ${dropOnEmpty ? styles.cardsDropTarget : ""}`}
         data-cards
       >
-        {list.cards.map((card) => (
+        {visibleCards.map((card) => (
           <BoardCard
             key={card.id}
             card={card}
+            tags={tags}
             dragging={dragCardId === card.id}
             dropTarget={dropCardId === card.id}
             onPointerDown={onCardPointerDown}

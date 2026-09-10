@@ -62,6 +62,7 @@ Dois domínios, mesmo padrão em camadas: `types/` → `models/` (mapper `toX` s
 - **Lembretes**: `pages/RemindersPage` (timeline na aba Ativos + cards nas demais), `pages/ReminderFormPage`, `components/ReminderCard`, `hooks/useReminders.ts`, `services/reminderService.ts`, `utils/format.ts`.
 - **Push**: `public/sw.js` (service worker só de push — sem handler de `fetch` nem precache; registrado em `main.tsx`), `hooks/usePushNotifications.ts`, `services/pushService.ts`, `utils/push.ts` e `components/PushBanner` (opt-in no topo da página de Lembretes).
 - **Hábitos**: `pages/HabitsPage` — agenda do dia em duas partes: `DayGrid` (grade de horas 06:00→24:00, 48px/hora, linha do "agora") para os hábitos com `startTime`, e `AnytimeTray` ("A qualquer hora": bandeja que sobe no celular, coluna fixa de 300px no desktop) para os sem horário. `utils/agendaGrid.ts` concentra as constantes e o algoritmo de layout dos blocos; `utils/timeWindow.ts` espelha as funções puras do backend. Também `hooks/useHabits.ts` (recalcula streak/level no cliente), `services/habitService.ts`, `utils/{dateUtils,streakUtils,levelUtils}.ts` e os componentes `TodayHeader`, `CompletionGrid`, `SidePanel`, `HabitForm`, `DaySelector`.
+- **`utils/iconLibrary.tsx`** — vocabulário único de ícones SVG (`ICON_LIBRARY`, `getIcon`, `DEFAULT_ICON_KEY`), usado por hábitos e pelas tags de projeto; persistido pela string `key`. `utils/colorTints.ts` (`tints`) é o tint compartilhado por tags e categorias de flashcard.
 - **`styles/global.css`** — CSS custom properties (tema escuro púrpura, fonte Inter). Vocabulário único de tokens `--color-*`/`--radius-*`/`--level-1..8`; sempre usar essas variáveis (nunca hardcode de cor).
 
 ### Endpoints
@@ -69,12 +70,15 @@ Dois domínios, mesmo padrão em camadas: `types/` → `models/` (mapper `toX` s
 - `GET/POST /api/reminders`; `GET/PUT/DELETE /api/reminders/:id`; `POST /api/reminders/:id/acknowledge`, `/cancel`, `/reschedule` e `/snooze` (body `{ minutes }`).
 - `GET /api/push/public-key`; `POST /api/push/subscribe`, `/unsubscribe` e `/test`.
 - `GET/POST /api/habits`; `PUT/DELETE /api/habits/:id`; `PATCH /api/habits/:id/completion/:date` (body `{ count: number }`).
+- `POST /api/projects/:id/tags`; `PUT/DELETE /api/projects/tags/:tagId`. O `PUT /api/projects/cards/:cardId` aceita `tagIds` (substitui o conjunto inteiro; `[]` limpa).
 
 ### Schema do banco
 
 - **`reminders`** — lembrete com `event_at`, `is_all_day`, recorrência (`recur_*`), `status`, `phase`, `next_notify_at`, `notify_count`, `max_notify`, etc.
 - **`habits`** — `id`, `name`, `selected_days INTEGER[]` (0–6), `icon`, `target_count`, `start_time`/`end_time TIME NULL`, `position`, timestamps. As duas colunas de hora são nulas juntas (= "a qualquer hora") ou formam uma janela de no mínimo 15 min que não cruza a meia-noite — `CHECK habits_time_window_chk` garante a parte estrutural. Streak/nível são recalculados no cliente (não persistidos).
 - **`habit_completions`** — `habit_id` (FK cascade), `date TEXT` (YYYY-MM-DD), `count`, `locked`, `UNIQUE(habit_id, date)`. O campo `completed` da API é derivado (`count >= target_count`).
+- **`project_tags`** — tag de um projeto (`project_id` FK cascade, `name`, `color`, `icon`, `position`). A cor é restringida à paleta `TAG_COLORS` no Zod (`schemas/project.ts`, espelhada em `frontend/src/utils/tagPalette.ts`), não no banco.
+- **`card_tags`** — vínculo N:N (`card_id`/`tag_id`, ambos FK cascade, PK composta). Editar uma tag reflete em todos os cartões porque o cartão guarda só o `id`; excluir a tag limpa os vínculos pelo cascade. `tagIds` chega ao board por uma query só (`loadCardTagIds`), agrupada em JS como os cartões.
 - **`push_subscriptions`** — `endpoint UNIQUE` (identidade da subscription, chave do upsert), `p256dh`, `auth`, `user_agent`, `last_seen_at`. Uma linha por aparelho.
 
 ## Convenções

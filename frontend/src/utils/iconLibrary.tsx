@@ -1,16 +1,16 @@
 import type { ComponentType } from "react";
 import { SvgIcon, type IconProps } from "../components/Icon/SvgIcon";
 
-export interface HabitIconEntry {
+export interface IconEntry {
   key: string;
   label: string;
   Icon: ComponentType<IconProps>;
 }
 
-export const HABIT_ICONS: HabitIconEntry[] = [
+export const ICON_LIBRARY: IconEntry[] = [
   {
     key: "book",
-    label: "Ler",
+    label: "Livro",
     Icon: (p) => (
       <SvgIcon {...p}>
         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
@@ -20,7 +20,7 @@ export const HABIT_ICONS: HabitIconEntry[] = [
   },
   {
     key: "book-open",
-    label: "Estudar",
+    label: "Livro aberto",
     Icon: (p) => (
       <SvgIcon {...p}>
         <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
@@ -30,7 +30,7 @@ export const HABIT_ICONS: HabitIconEntry[] = [
   },
   {
     key: "activity",
-    label: "Exercício",
+    label: "Atividade",
     Icon: (p) => (
       <SvgIcon {...p}>
         <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
@@ -39,7 +39,7 @@ export const HABIT_ICONS: HabitIconEntry[] = [
   },
   {
     key: "droplet",
-    label: "Beber água",
+    label: "Gota",
     Icon: (p) => (
       <SvgIcon {...p}>
         <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
@@ -48,7 +48,7 @@ export const HABIT_ICONS: HabitIconEntry[] = [
   },
   {
     key: "moon",
-    label: "Dormir",
+    label: "Lua",
     Icon: (p) => (
       <SvgIcon {...p}>
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
@@ -57,7 +57,7 @@ export const HABIT_ICONS: HabitIconEntry[] = [
   },
   {
     key: "sun",
-    label: "Acordar cedo",
+    label: "Sol",
     Icon: (p) => (
       <SvgIcon {...p}>
         <circle cx="12" cy="12" r="5" />
@@ -78,7 +78,7 @@ export const HABIT_ICONS: HabitIconEntry[] = [
   },
   {
     key: "music",
-    label: "Praticar",
+    label: "Música",
     Icon: (p) => (
       <SvgIcon {...p}>
         <path d="M9 18V5l12-2v13" />
@@ -89,7 +89,7 @@ export const HABIT_ICONS: HabitIconEntry[] = [
   },
   {
     key: "heart",
-    label: "Saúde",
+    label: "Coração",
     Icon: (p) => (
       <SvgIcon {...p}>
         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" />
@@ -98,7 +98,7 @@ export const HABIT_ICONS: HabitIconEntry[] = [
   },
   {
     key: "monitor",
-    label: "Trabalhar",
+    label: "Monitor",
     Icon: (p) => (
       <SvgIcon {...p}>
         <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
@@ -108,7 +108,7 @@ export const HABIT_ICONS: HabitIconEntry[] = [
   },
   {
     key: "dollar-sign",
-    label: "Poupar",
+    label: "Dinheiro",
     Icon: (p) => (
       <SvgIcon {...p}>
         <path d="M12 1v22" />
@@ -128,7 +128,7 @@ export const HABIT_ICONS: HabitIconEntry[] = [
   },
   {
     key: "award",
-    label: "Meta",
+    label: "Prêmio",
     Icon: (p) => (
       <SvgIcon {...p}>
         <circle cx="12" cy="8" r="7" />
@@ -138,7 +138,7 @@ export const HABIT_ICONS: HabitIconEntry[] = [
   },
   {
     key: "target",
-    label: "Foco",
+    label: "Alvo",
     Icon: (p) => (
       <SvgIcon {...p}>
         <circle cx="12" cy="12" r="10" />
@@ -149,12 +149,12 @@ export const HABIT_ICONS: HabitIconEntry[] = [
   },
 ];
 
-export const DEFAULT_HABIT_ICON_KEY = "target";
+export const DEFAULT_ICON_KEY = "target";
 
 const ICON_MAP: Record<string, ComponentType<IconProps>> = Object.fromEntries(
-  HABIT_ICONS.map((entry) => [entry.key, entry.Icon])
+  ICON_LIBRARY.map((entry) => [entry.key, entry.Icon])
 );
 
-export function getHabitIcon(key: string): ComponentType<IconProps> {
-  return ICON_MAP[key] ?? ICON_MAP[DEFAULT_HABIT_ICON_KEY]!;
+export function getIcon(key: string): ComponentType<IconProps> {
+  return ICON_MAP[key] ?? ICON_MAP[DEFAULT_ICON_KEY]!;
 }

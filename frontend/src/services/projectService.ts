@@ -1,5 +1,13 @@
 import { del, get, post, put } from "./api";
-import type { BoardList, Card, CardPatch, Project, ProjectBoard } from "../types/project";
+import type {
+  BoardList,
+  Card,
+  CardPatch,
+  Project,
+  ProjectBoard,
+  ProjectTag,
+  ProjectTagFormData,
+} from "../types/project";
 
 export function fetchProjects(): Promise<Project[]> {
   return get<Project[]>("/api/projects");
@@ -51,4 +59,16 @@ export function deleteCard(cardId: string): Promise<void> {
 
 export function moveCard(cardId: string, toListId: string, position: number): Promise<ProjectBoard> {
   return post<ProjectBoard>(`/api/projects/cards/${cardId}/move`, { toListId, position });
+}
+
+export function createTag(projectId: string, data: ProjectTagFormData): Promise<ProjectTag> {
+  return post<ProjectTag>(`/api/projects/${projectId}/tags`, data);
+}
+
+export function updateTag(tagId: string, data: ProjectTagFormData): Promise<ProjectTag> {
+  return put<ProjectTag>(`/api/projects/tags/${tagId}`, data);
+}
+
+export function deleteTag(tagId: string): Promise<void> {
+  return del(`/api/projects/tags/${tagId}`);
 }

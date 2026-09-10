@@ -9,6 +9,27 @@ const cardImages = z
 const cardChecklist = z
   .array(z.object({ text: z.string().min(1).max(500), done: z.boolean() }))
   .max(100, "No máximo 100 itens.");
+const cardTagIds = z
+  .array(z.string().uuid("Tag inválida."))
+  .max(12, "No máximo 12 tags por cartão.");
+
+// Paleta fixa de swatches — espelhada em frontend/src/utils/tagPalette.ts.
+export const TAG_COLORS = [
+  "#b7aefc",
+  "#8fc5ff",
+  "#7dd3fc",
+  "#6ee7a8",
+  "#c3e88d",
+  "#f0c878",
+  "#ffb37a",
+  "#ff9b8a",
+  "#f4a8d8",
+  "#d0d4dc",
+] as const;
+
+const tagName = z.string().trim().min(1, "Informe o nome da tag.").max(40, "Nome muito longo.");
+const tagColor = z.enum(TAG_COLORS, "Cor inválida.");
+const tagIcon = z.string().min(1, "Escolha um ícone.").max(16);
 
 export const createProjectSchema = z.object({ name });
 
@@ -26,6 +47,15 @@ export const updateCardSchema = z.object({
   description: cardDescription.optional(),
   images: cardImages.optional(),
   checklist: cardChecklist.optional(),
+  tagIds: cardTagIds.optional(),
+});
+
+export const createTagSchema = z.object({ name: tagName, color: tagColor, icon: tagIcon });
+
+export const updateTagSchema = z.object({
+  name: tagName.optional(),
+  color: tagColor.optional(),
+  icon: tagIcon.optional(),
 });
 
 export const reorderListsSchema = z.object({
