@@ -116,6 +116,7 @@ export function DayGrid({ layout, nowMinutes, onToggle, onOpen, onCreateAt }: Da
             const range = formatRange(block.startMin, block.minutes);
             const short = block.height < 44;
             const narrow = block.columns > 1;
+            const compact = narrow || block.tiny;
 
             return (
               <li
@@ -124,11 +125,14 @@ export function DayGrid({ layout, nowMinutes, onToggle, onOpen, onCreateAt }: Da
                 data-state={state}
                 data-short={short || undefined}
                 data-narrow={narrow || undefined}
+                data-tiny={block.tiny || undefined}
+                data-lines={block.lines}
                 style={{
                   top: block.top,
                   height: block.height,
-                  left: `${(block.column / block.columns) * 100}%`,
-                  width: `calc(${100 / block.columns}% - ${COLUMN_GAP}px)`,
+                  left: `${block.left * 100}%`,
+                  width: `calc(${block.width * 100}% - ${COLUMN_GAP}px)`,
+                  zIndex: block.column + 1,
                   ["--hit-bottom" as string]: `${Math.min(
                     HIT_EXPAND_MAX,
                     Math.max(0, block.spaceBelow - 1)
@@ -192,14 +196,16 @@ export function DayGrid({ layout, nowMinutes, onToggle, onOpen, onCreateAt }: Da
                 >
                   <span className={styles.body}>
                     <span className={styles.name}>{habit.name}</span>
-                    {block.tall && !narrow && (
-                      <span className={styles.meta}>
-                        {range} · {formatDuration(block.minutes)}
-                        <span className={styles.metaLevel}> · Nv {habit.level}</span>
-                      </span>
-                    )}
+                    <span className={styles.meta}>
+                      {range}
+                      {block.tall && !compact && (
+                        <span className={styles.metaExtra}>
+                          {" · "}
+                          {formatDuration(block.minutes)} · Nv {habit.level}
+                        </span>
+                      )}
+                    </span>
                   </span>
-                  <span className={styles.time}>{range}</span>
                   <span className={styles.check} aria-hidden="true">
                     {completed && <CheckMarkIcon className={styles.checkIcon} />}
                   </span>

@@ -18,6 +18,8 @@
   --color-border-subtle: #1e1e30;
   --color-border-faint: #15151f;
   --color-border-sheet: #262640;
+  --color-muted-rail: rgba(96, 96, 120, 0.55);
+  --color-muted-border: rgba(96, 96, 120, 0.3);
 
   --color-text-primary: #e8e8f0;
   --color-text-secondary: #9090a8;
@@ -79,6 +81,7 @@
   --spacing-2xl: 2rem;
   --spacing-3xl: 3rem;
 
+  --radius-xs: 3px;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;

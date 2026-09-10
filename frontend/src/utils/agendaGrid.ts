@@ -1,12 +1,21 @@
 import type { Habit } from "../types/habit";
 import { minutesToTime, parseTimeToMinutes } from "./timeWindow";
 
-export const PX_PER_HOUR = 96;
+export const PX_PER_HOUR = 48;
 export const DEFAULT_START_HOUR = 6;
 export const END_HOUR = 24;
 export const MIN_BLOCK_MINUTES = 15;
-export const TALL_BLOCK_HEIGHT = 52;
+/** Nome em cima e hora embaixo só a partir de 1 h (48px). Abaixo, uma linha. */
+export const TWO_LINE_HEIGHT = 40;
+export const TALL_BLOCK_HEIGHT = 64;
+export const TINY_BLOCK_HEIGHT = 20;
 export const COLUMN_GAP = 3;
+/**
+ * Truque do Google Calendar: a coluna é mais larga que a fatia 1/n e invade a
+ * vizinha da direita, que pinta por cima (z-index = coluna). O bloco da
+ * esquerda perde a borda direita, mas mantém largura para o nome.
+ */
+export const COLUMN_OVERLAP = 1.6;
 
 const MINUTES_IN_DAY = END_HOUR * 60;
 
@@ -27,9 +36,14 @@ export interface AgendaBlock {
   top: number;
   height: number;
   tall: boolean;
+  tiny: boolean;
+  lines: 1 | 2;
   spaceBelow: number;
   column: number;
   columns: number;
+  /** Frações de 0 a 1 da largura da faixa, já com o avanço do COLUMN_OVERLAP. */
+  left: number;
+  width: number;
 }
 
 export interface AgendaLayout {
@@ -126,9 +140,13 @@ export function layoutBlocks(items: HabitEntry[], startHour: number): AgendaLayo
       top: hourTop(entry.startMin, startHour),
       height,
       tall: height >= TALL_BLOCK_HEIGHT,
+      tiny: height < TINY_BLOCK_HEIGHT,
+      lines: height >= TWO_LINE_HEIGHT ? 2 : 1,
       spaceBelow: Infinity,
       column: 0,
       columns: 1,
+      left: 0,
+      width: 1,
     };
   });
 
@@ -145,6 +163,14 @@ export function layoutBlocks(items: HabitEntry[], startHour: number): AgendaLayo
     groupEnd = Math.max(groupEnd, block.endMin);
   }
 
+  for (const block of blocks) {
+    const slot = 1 / block.columns;
+    block.left = block.column * slot;
+    block.width = Math.min(1 - block.left, slot * COLUMN_OVERLAP);
+  }
+
+  /* Folga medida pela fatia própria (1/n), não pela largura invadida — senão
+     todo bloco de um grupo pareceria ter vizinho embaixo. */
   for (const block of blocks) {
     const left = block.column / block.columns;
     const right = (block.column + 1) / block.columns;
