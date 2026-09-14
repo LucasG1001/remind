@@ -11,8 +11,6 @@ export interface Habit {
   icon: string;
   selectedDays: number[];
   targetCount: number;
-  startTime: string | null;
-  endTime: string | null;
   completions: HabitCompletion[];
   position: number;
   createdAt: string;
@@ -25,9 +23,6 @@ export interface HabitRow {
   icon: string;
   selected_days: number[];
   target_count: number;
-  // pg devolve TIME como "HH:MM:SS" — o mapper toHabit corta para "HH:MM".
-  start_time: string | null;
-  end_time: string | null;
   position: number;
   created_at: string;
   updated_at: string;
@@ -45,8 +40,6 @@ export interface NewHabit {
   icon: string;
   selectedDays: number[];
   targetCount: number;
-  startTime: string | null;
-  endTime: string | null;
 }
 
 export interface HabitPatch {
@@ -54,6 +47,4 @@ export interface HabitPatch {
   icon?: string;
   selectedDays?: number[];
   targetCount?: number;
-  startTime?: string | null;
-  endTime?: string | null;
 }

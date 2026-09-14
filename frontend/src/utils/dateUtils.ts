@@ -9,13 +9,6 @@ export function spCalendarDay(instant: Date): Date {
   return new Date(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate());
 }
 
-/** Minutos desde a meia-noite no fuso fixo de SP (UTC-3). */
-export function spMinutesOfDay(instant: Date | number): number {
-  const ms = typeof instant === "number" ? instant : instant.getTime();
-  const shifted = new Date(ms - SP_OFFSET_MS);
-  return shifted.getUTCHours() * 60 + shifted.getUTCMinutes();
-}
-
 export function spDateKey(instant: Date): string {
   return formatDateKey(spCalendarDay(instant));
 }

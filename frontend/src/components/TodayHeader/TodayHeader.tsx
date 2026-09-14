@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { useMemo } from "react";
 import type { Habit } from "../../types/habit";
 import { getToday, getTodayKey, isScheduledDay } from "../../utils/dateUtils";
 import { calculateCombinedStreak } from "../../utils/streakUtils";
@@ -8,12 +8,11 @@ import styles from "./TodayHeader.module.css";
 
 interface TodayHeaderProps {
   habits: Habit[];
-  onCreate?: () => void;
 }
 
 const dayFormatter = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "long" });
 
-function TodayHeaderBase({ habits, onCreate }: TodayHeaderProps) {
+export function TodayHeader({ habits }: TodayHeaderProps) {
   const { open: openCalendar } = useCalendar();
 
   const { doneToday, totalToday, current, longest } = useMemo(() => {
@@ -54,12 +53,6 @@ function TodayHeaderBase({ habits, onCreate }: TodayHeaderProps) {
           <FlameIcon className={styles.flame} />
           {current}
         </span>
-        {onCreate && (
-          <button type="button" className={styles.newButton} onClick={onCreate}>
-            <span className={styles.newPlus}>+</span>
-            <span className={styles.newLabel}>Novo hábito</span>
-          </button>
-        )}
       </div>
 
       <div className={styles.row}>
@@ -70,12 +63,9 @@ function TodayHeaderBase({ habits, onCreate }: TodayHeaderProps) {
           {doneToday}
           <span className={styles.ratioTotal}>/{totalToday}</span>
         </span>
-        <p className={styles.caption}>{caption}</p>
       </div>
+
+      <p className={styles.caption}>{caption}</p>
     </header>
   );
 }
-
-// memo: a HabitsPage re-renderiza a cada minuto (linha do "agora") e
-// calculateCombinedStreak varre todos os dias desde o hábito mais antigo.
-export const TodayHeader = memo(TodayHeaderBase);

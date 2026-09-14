@@ -1,7 +1,6 @@
 import { pool } from "../database/connection.js";
 import { updateById, withTransaction } from "../database/transaction.js";
 import { buildUpdateSet, nextPositionSql } from "../lib/sqlUpdate.js";
-import { toHhMm } from "../lib/timeWindow.js";
 import { CompletionLockedError } from "./errors.js";
 import type {
   Habit,
@@ -23,8 +22,6 @@ function toHabit(row: HabitRow, completionRows: HabitCompletionRow[]): Habit {
     icon: row.icon,
     selectedDays: row.selected_days,
     targetCount: row.target_count,
-    startTime: toHhMm(row.start_time),
-    endTime: toHhMm(row.end_time),
     completions: completionRows
       .filter((c) => c.habit_id === row.id)
       .map((c) => ({
@@ -61,17 +58,10 @@ export async function findById(id: string): Promise<Habit | null> {
 
 export async function create(entry: NewHabit): Promise<Habit> {
   const result = await pool.query<HabitRow>(
-    `INSERT INTO habits (name, selected_days, icon, target_count, start_time, end_time, position)
-     VALUES ($1, $2, $3, $4, $5, $6, ${nextPositionSql("habits")})
+    `INSERT INTO habits (name, selected_days, icon, target_count, position)
+     VALUES ($1, $2, $3, $4, ${nextPositionSql("habits")})
      RETURNING *`,
-    [
-      entry.name,
-      entry.selectedDays,
-      entry.icon,
-      entry.targetCount,
-      entry.startTime,
-      entry.endTime,
-    ]
+    [entry.name, entry.selectedDays, entry.icon, entry.targetCount]
   );
   return toHabit(result.rows[0]!, []);
 }
@@ -93,8 +83,6 @@ const COLUMN_MAP: Record<keyof HabitPatch, string> = {
   icon: "icon",
   selectedDays: "selected_days",
   targetCount: "target_count",
-  startTime: "start_time",
-  endTime: "end_time",
 };
 
 export async function update(id: string, patch: HabitPatch): Promise<Habit | null> {

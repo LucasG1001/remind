@@ -1,15 +1,40 @@
 .page {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
-  overflow: hidden;
+  max-width: 960px;
+  margin: 0 auto;
+  padding-bottom: var(--spacing-2xl);
 }
 
-.body {
-  flex: 1;
-  min-height: 0;
+.actionsRow {
   display: flex;
-  flex-direction: column;
+  justify-content: flex-end;
+  padding: var(--spacing-md) 14px 0;
+}
+
+.newButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  padding: var(--spacing-sm) var(--spacing-base);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  white-space: nowrap;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.newButton:hover {
+  background: var(--color-accent-hover);
+  transform: translateY(-1px);
+}
+
+.newPlus {
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
 }
 
 .muted {
@@ -62,16 +87,12 @@
 }
 
 @media (max-width: 768px) {
-  /* O .content do App já reserva o padding da barra inferior; aqui a página
-     desconta a mesma altura para a grade rolar sozinha e a bandeja ficar presa. */
-  .page {
-    height: calc(100dvh - var(--mobile-nav-height) - env(safe-area-inset-bottom));
+  /* No celular o "+" central da barra inferior cuida de adicionar. */
+  .actionsRow {
+    display: none;
   }
-}
 
-@media (min-width: 769px) {
-  .body {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 300px;
+  .newButton {
+    display: none;
   }
 }

@@ -85,29 +85,6 @@ export async function migrate(): Promise<void> {
     ALTER TABLE habits ADD COLUMN IF NOT EXISTS target_count INTEGER NOT NULL DEFAULT 1;
   `);
 
-  // Janela de horário do hábito. As duas nulas = "a qualquer hora" (default de
-  // quem já existia). A duração mínima de 15 min é regra de produto e mora no Zod;
-  // aqui fica só o invariante estrutural.
-  await pool.query(`
-    ALTER TABLE habits ADD COLUMN IF NOT EXISTS start_time TIME;
-  `);
-
-  await pool.query(`
-    ALTER TABLE habits ADD COLUMN IF NOT EXISTS end_time TIME;
-  `);
-
-  await pool.query(`
-    DO $$
-    BEGIN
-      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'habits_time_window_chk') THEN
-        ALTER TABLE habits ADD CONSTRAINT habits_time_window_chk CHECK (
-          (start_time IS NULL AND end_time IS NULL)
-          OR (start_time IS NOT NULL AND end_time IS NOT NULL AND end_time > start_time)
-        );
-      END IF;
-    END $$;
-  `);
-
   await pool.query(`
     CREATE TABLE IF NOT EXISTS habit_completions (
       id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),

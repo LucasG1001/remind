@@ -1,0 +1,43 @@
+.week {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.bar {
+  display: block;
+  width: 9px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-tertiary);
+  transition: background var(--transition-fast), opacity var(--transition-fast);
+}
+
+.completed {
+  background: var(--color-success);
+}
+
+.pending {
+  background: var(--color-accent);
+}
+
+.missed {
+  background: var(--color-border);
+}
+
+.future {
+  background: var(--color-bg-tertiary);
+}
+
+.notScheduled {
+  background: var(--color-bg-tertiary);
+  opacity: 0.5;
+}
+
+@media (max-width: 480px) {
+  .bar {
+    width: 8px;
+    height: 20px;
+  }
+}

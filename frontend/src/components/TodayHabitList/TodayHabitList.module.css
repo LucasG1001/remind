@@ -1,0 +1,188 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-md) 0 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  animation: cardEnter var(--transition-base);
+  transition: background var(--transition-fast), opacity var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.list .row:last-child {
+  border-bottom: none;
+}
+
+.rowDone {
+  opacity: 0.55;
+}
+
+.dragging,
+.dragging:hover {
+  opacity: 0.6;
+  transform: scale(1.02);
+  cursor: grabbing;
+}
+
+.iconButton {
+  flex: none;
+  width: 34px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent);
+  touch-action: none;
+  transition: color var(--transition-fast);
+}
+
+.rowDone .iconButton {
+  color: var(--color-success);
+}
+
+.icon {
+  width: 22px;
+  height: 22px;
+  stroke-width: 1.7;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: 0;
+  text-align: left;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.name {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowDone .name {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+}
+
+.subtitle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.separator {
+  color: var(--color-text-tertiary);
+}
+
+.level {
+  color: var(--color-accent-light);
+}
+
+.check {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-border);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.rowDone .check {
+  background: var(--color-success);
+  border-color: transparent;
+  color: var(--color-on-success);
+}
+
+.checkIcon {
+  width: 17px;
+  height: 17px;
+  stroke-width: 3;
+}
+
+.doneHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: 18px var(--spacing-md) var(--spacing-sm);
+}
+
+.doneTitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-text-tertiary);
+}
+
+.doneToggle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  padding: var(--spacing-xs) 0;
+  transition: color var(--transition-fast);
+}
+
+.doneToggle:hover {
+  color: var(--color-text-secondary);
+}
+
+.empty {
+  padding: var(--spacing-lg) 14px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+@media (hover: hover) {
+  .row:hover {
+    background: var(--color-bg-secondary);
+  }
+
+  .iconButton:hover {
+    color: var(--color-accent-light);
+  }
+
+  .rowDone .iconButton:hover {
+    color: var(--color-success);
+  }
+}

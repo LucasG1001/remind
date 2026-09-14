@@ -1,7 +1,6 @@
 import { createElement, useMemo } from "react";
 import type { Habit } from "../../types/habit";
 import { getTodayKey } from "../../utils/dateUtils";
-import { formatSchedule } from "../../utils/agendaGrid";
 import { getIcon } from "../../utils/iconLibrary";
 import { calculateRecentRate } from "../../utils/streakUtils";
 import { formatSelectedDays } from "../../utils/weekdays";
@@ -84,11 +83,6 @@ export function SidePanel({ habit, onClose, onEdit, onDelete, onSetCount }: Side
               <span className={styles.habitCaption}>
                 {formatSelectedDays(habit.selectedDays)} · meta {target}×/dia
               </span>
-              {habit.startTime && (
-                <span className={styles.habitSchedule}>
-                  {formatSchedule(habit.startTime, habit.endTime)}
-                </span>
-              )}
             </span>
           </div>
 
