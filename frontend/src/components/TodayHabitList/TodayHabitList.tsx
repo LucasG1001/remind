@@ -4,7 +4,7 @@ import { getToday, getTodayKey, isScheduledDay } from "../../utils/dateUtils";
 import { getIcon } from "../../utils/iconLibrary";
 import { moveRelativeTo } from "../../utils/reorder";
 import { LONG_PRESS_DRAG_MS, MOVE_THRESHOLD } from "../../hooks/useLongPress";
-import { CheckMarkIcon } from "../Sidebar/Sidebar.icons";
+import { CheckMarkIcon } from "../Icon/icons";
 import { WeekBars } from "../WeekBars/WeekBars";
 import styles from "./TodayHabitList.module.css";
 

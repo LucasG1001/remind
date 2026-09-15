@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { createPortal } from "react-dom";
 import { useProjects } from "../../hooks/useProjects";
 import { ProjectSwitcher } from "../../components/ProjectSwitcher/ProjectSwitcher";
 import { BoardListColumn } from "../../components/BoardList/BoardList";
@@ -9,6 +10,7 @@ import { ProjectTagModal } from "../../components/ProjectTagModal/ProjectTagModa
 import { TagChip } from "../../components/TagChip/TagChip";
 import { moveCardInBoard, moveRelativeTo } from "../../utils/reorder";
 import { LONG_PRESS_DRAG_MS, MOVE_THRESHOLD } from "../../hooks/useLongPress";
+import { useHeaderSlot } from "../../context/useHeaderSlot";
 import { alertApiError } from "../../utils/apiError";
 import type { BoardList, Card, CardPatch } from "../../types/project";
 import styles from "./ProjectsPage.module.css";
@@ -66,6 +68,7 @@ export function ProjectsPage() {
     updateTag,
     deleteTag,
   } = useProjects();
+  const headerSlot = useHeaderSlot();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -510,22 +513,26 @@ export function ProjectsPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <ProjectSwitcher
-          projects={projects}
-          current={currentProject}
-          onSelect={selectProject}
-          onCreate={(name) =>
-            createProject(name).catch((err) => alertApiError(err, "Não foi possível criar o projeto."))
-          }
-          onRename={(id, name) =>
-            renameProject(id, name).catch((err) => alertApiError(err, "Não foi possível renomear o projeto."))
-          }
-          onDelete={(id) =>
-            deleteProject(id).catch((err) => alertApiError(err, "Não foi possível excluir o projeto."))
-          }
-        />
+      {headerSlot &&
+        createPortal(
+          <ProjectSwitcher
+            projects={projects}
+            current={currentProject}
+            onSelect={selectProject}
+            onCreate={(name) =>
+              createProject(name).catch((err) => alertApiError(err, "Não foi possível criar o projeto."))
+            }
+            onRename={(id, name) =>
+              renameProject(id, name).catch((err) => alertApiError(err, "Não foi possível renomear o projeto."))
+            }
+            onDelete={(id) =>
+              deleteProject(id).catch((err) => alertApiError(err, "Não foi possível excluir o projeto."))
+            }
+          />,
+          headerSlot,
+        )}
 
+      <header className={styles.header}>
         {currentProject && (
           <div className={styles.tagBar}>
             {tags.map((tag) => (

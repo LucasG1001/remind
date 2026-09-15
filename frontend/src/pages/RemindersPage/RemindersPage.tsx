@@ -4,8 +4,7 @@ import { useReminders } from "../../hooks/useReminders";
 import { ReminderActionsSheet } from "../../components/ReminderActionsSheet/ReminderActionsSheet";
 import { PushBanner } from "../../components/PushBanner/PushBanner";
 import { Timeline } from "../../components/Timeline/Timeline";
-import { BellIcon, CalendarIcon } from "../../components/Sidebar/Sidebar.icons";
-import { useCalendar } from "../../context/useCalendar";
+import { BellIcon } from "../../components/Icon/icons";
 import { groupByDay, groupByMonth, splitAgenda, type TimelineItem } from "../../utils/agenda";
 import { recurrenceLabel, remainingLabel, dayRemainingLabel } from "../../utils/format";
 import { alertApiError } from "../../utils/apiError";
@@ -33,7 +32,6 @@ const iconForBell = () => BellIcon;
 export function RemindersPage() {
   const navigate = useNavigate();
   const { reminders, loading, error, reload, acknowledge, reschedule, cancel } = useReminders();
-  const { open: openCalendar } = useCalendar();
 
   const [selected, setSelected] = useState<Reminder | null>(null);
 
@@ -53,20 +51,6 @@ export function RemindersPage() {
     <div className={styles.page}>
       <header className={styles.header}>
         <h2 className={styles.sectionTitle}>Esta semana</h2>
-        <div className={styles.headerActions}>
-          <button
-            type="button"
-            className={styles.calendarButton}
-            aria-label="Abrir calendário"
-            onClick={openCalendar}
-          >
-            <CalendarIcon className={styles.calendarIcon} />
-          </button>
-          <Link to="/lembretes/novo" className={styles.newButton} aria-label="Novo lembrete">
-            <span className={styles.newPlus} aria-hidden="true">+</span>
-            <span className={styles.newLabel}>Novo lembrete</span>
-          </Link>
-        </div>
       </header>
 
       <PushBanner />

@@ -154,13 +154,11 @@ export function FlashcardReview({ categories, onReview }: FlashcardReviewProps) 
 
       {due.length === 0 ? (
         <div className={styles.finished}>
-          <div className={styles.emoji}>✅</div>
           <p className={styles.finishedTitle}>Nada para revisar agora</p>
           <p className={styles.muted}>Volte mais tarde ou crie novos cartões.</p>
         </div>
       ) : finished ? (
         <div className={styles.finished}>
-          <div className={styles.emoji}>🎉</div>
           <p className={styles.finishedTitle}>Sessão concluída</p>
           <p className={styles.muted}>
             Você revisou os cards de <strong>{tabs.find((t) => t.id === category)?.label}</strong>.
@@ -185,7 +183,6 @@ export function FlashcardReview({ categories, onReview }: FlashcardReviewProps) 
         </div>
       ) : queue.length === 0 ? (
         <div className={styles.finished}>
-          <div className={styles.emoji}>🗂️</div>
           <p className={styles.finishedTitle}>Nenhum card nesta categoria</p>
           <p className={styles.muted}>Escolha outra categoria acima.</p>
         </div>
@@ -223,13 +220,6 @@ export function FlashcardReview({ categories, onReview }: FlashcardReviewProps) 
                   </div>
                   <div className={styles.faceBody}>
                     <p className={styles.question}>{card.question}</p>
-                    {card.questionImages.length > 0 && (
-                      <div className={styles.images}>
-                        {card.questionImages.map((src, i) => (
-                          <img key={i} src={src} alt={`Pergunta ${i + 1}`} className={styles.image} />
-                        ))}
-                      </div>
-                    )}
                   </div>
                   <div className={styles.hint}>clique ou espaço para virar</div>
                 </div>
@@ -250,13 +240,6 @@ export function FlashcardReview({ categories, onReview }: FlashcardReviewProps) 
                   </div>
                   <div className={styles.faceBody}>
                     <p className={styles.answer}>{card.answer}</p>
-                    {card.answerImages.length > 0 && (
-                      <div className={styles.images}>
-                        {card.answerImages.map((src, i) => (
-                          <img key={i} src={src} alt={`Resposta ${i + 1}`} className={styles.image} />
-                        ))}
-                      </div>
-                    )}
                   </div>
                   <div className={styles.hint}>como você foi?</div>
                 </div>

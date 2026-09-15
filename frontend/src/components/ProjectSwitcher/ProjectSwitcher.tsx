@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import type { Project } from "../../types/project";
 import { useDismiss } from "../../hooks/useDismiss";
-import { CaretDownIcon } from "../Sidebar/Sidebar.icons";
+import { CaretDownIcon } from "../Icon/icons";
 import { ConfirmButton } from "../ConfirmButton/ConfirmButton";
 import { InlineTextEdit } from "../InlineTextEdit/InlineTextEdit";
 import styles from "./ProjectSwitcher.module.css";

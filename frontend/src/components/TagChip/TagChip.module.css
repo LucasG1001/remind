@@ -46,7 +46,7 @@
   flex: none;
   padding: 0 var(--spacing-xs);
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   font-size: var(--font-size-xs);
 }
 

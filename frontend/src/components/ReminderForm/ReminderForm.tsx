@@ -10,7 +10,7 @@ import {
 import type { RecurMode, RecurUnit, ReminderInput } from "../../types/reminder";
 import { toFormParts, spInstant } from "../../utils/format";
 import { WEEKDAYS_PT } from "../../utils/weekdays";
-import { ChevronIcon } from "../Sidebar/Sidebar.icons";
+import { ChevronIcon } from "../Icon/icons";
 import { Modal } from "../Modal/Modal";
 import styles from "./ReminderForm.module.css";
 

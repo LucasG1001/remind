@@ -1,4 +1,4 @@
-export interface FlashcardSummary {
+export interface Flashcard {
   id: string;
   question: string;
   answer: string;
@@ -10,15 +10,8 @@ export interface FlashcardSummary {
   updatedAt: string;
 }
 
-export interface Flashcard extends FlashcardSummary {
-  questionImages: string[];
-  answerImages: string[];
-}
-
 export interface FlashcardFormData {
   question: string;
   answer: string;
-  questionImages: string[];
-  answerImages: string[];
   categoryId: string | null;
 }

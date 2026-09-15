@@ -10,7 +10,7 @@ import { parseBody, requireUuid } from "../lib/validation.js";
 const FLASHCARD_NOT_FOUND = "Flashcard não encontrado.";
 
 export const getFlashcards = asyncHandler("Erro ao buscar flashcards.", async (_req, res) => {
-  const flashcards = await flashcardModel.findAllSummaries();
+  const flashcards = await flashcardModel.findAll();
   res.json(flashcards);
 });
 

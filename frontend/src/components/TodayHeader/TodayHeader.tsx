@@ -3,7 +3,7 @@ import type { Habit } from "../../types/habit";
 import { getToday, getTodayKey, isScheduledDay } from "../../utils/dateUtils";
 import { calculateCombinedStreak } from "../../utils/streakUtils";
 import { useCalendar } from "../../context/useCalendar";
-import { CalendarIcon, FlameIcon } from "../Sidebar/Sidebar.icons";
+import { CalendarIcon, FlameIcon } from "../Icon/icons";
 import styles from "./TodayHeader.module.css";
 
 interface TodayHeaderProps {

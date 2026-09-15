@@ -9,7 +9,7 @@ Este arquivo orienta o Claude Code (claude.ai/code) ao trabalhar neste repositó
 - **Lembretes** — avisos por **Web Push** no PWA (Android) com dois botões de ação (`Soneca 15 min` / `Concluir`) e recorrência. O backend envia com `web-push`/VAPID; o service worker (`frontend/public/sw.js`) exibe e executa as ações.
 - **Hábitos** — tracking de hábitos com streak, níveis e grade de conclusões. **Sem notificações.** (Domínio fundido do antigo projeto `done`, descontinuado.)
 
-O frontend navega entre as duas por uma Sidebar (vira barra inferior no mobile) e ambas usam o mesmo componente de **linha do tempo** (`components/Timeline`, agrupada por dia/mês).
+O frontend navega entre as duas por uma barra no topo (`components/TopNav`, que vira barra inferior no mobile) e ambas usam o mesmo componente de **linha do tempo** (`components/Timeline`, agrupada por dia/mês).
 
 ## Comandos de desenvolvimento
 
@@ -56,14 +56,15 @@ Dois domínios, mesmo padrão em camadas: `types/` → `models/` (mapper `toX` s
 
 ### Frontend (`frontend/src/`)
 
-- **`App.tsx`** — BrowserRouter + `Sidebar`; rotas `/lembretes`, `/lembretes/novo`, `/lembretes/r/:id`, `/habitos` (`/` redireciona para `/lembretes`).
-- **`components/Sidebar/`** — navegação Lembretes/Hábitos (bottom-nav no mobile).
+- **`App.tsx`** — BrowserRouter + `CalendarProvider` + `HeaderSlotProvider` + `TopNav`; rotas `/lembretes`, `/lembretes/novo`, `/lembretes/r/:id`, `/habitos` (`/` redireciona para `/lembretes`).
+- **`components/TopNav/`** — header: marca, `SectionSwitcher` (dropdown das seções, em portal no `body`), o slot de contexto e os botões Calendário/`+`, só com ícone (o destino do `+` vem de `navItems.ts`). Abaixo de 768px o header continua, condensado (seção + contexto + calendário), e ganha a bottom-nav com FAB central. `components/Icon/icons.tsx` é a biblioteca de ícones SVG compartilhada.
+- **Slot do header** — `context/HeaderSlotContext.tsx` + `useHeaderSlot()`: o TopNav publica o nó do slot e a página ativa injeta ali seu contexto por `createPortal`, sem espelhar estado. Hoje usam o slot: `FlashcardsPage` (abas Estudar/Gerenciar) e `ProjectsPage` (`ProjectSwitcher` do quadro). Quem não usa deixa vazio — o separador some via `:has(.slot:empty)`.
 - **`components/Timeline/`** + **`utils/agenda.ts`** — linha do tempo genérica (`TimelineItem`, `splitAgenda`, `groupByDay`, `groupByMonth`) usada pelas duas páginas.
 - **Lembretes**: `pages/RemindersPage` (timeline na aba Ativos + cards nas demais), `pages/ReminderFormPage`, `components/ReminderCard`, `hooks/useReminders.ts`, `services/reminderService.ts`, `utils/format.ts`.
 - **Push**: `public/sw.js` (service worker só de push — sem handler de `fetch` nem precache; registrado em `main.tsx`), `hooks/usePushNotifications.ts`, `services/pushService.ts`, `utils/push.ts` e `components/PushBanner` (opt-in no topo da página de Lembretes).
 - **Hábitos**: `pages/HabitsPage` (`TodayHeader` + `TodayHabitList` com as `WeekBars` da semana, timeline de ocorrências, `SidePanel` e `HabitForm`), `hooks/useHabits.ts` (recalcula streak/level no cliente), `services/habitService.ts`, `utils/{dateUtils,streakUtils,levelUtils}.ts` e os componentes `CompletionGrid`, `DaySelector`.
 - **`utils/iconLibrary.tsx`** — vocabulário único de ícones SVG (`ICON_LIBRARY`, `getIcon`, `DEFAULT_ICON_KEY`), usado por hábitos e pelas tags de projeto; persistido pela string `key`. `utils/colorTints.ts` (`tints`) é o tint compartilhado por tags e categorias de flashcard.
-- **`styles/global.css`** — CSS custom properties (tema escuro púrpura, fonte Inter). Vocabulário único de tokens `--color-*`/`--radius-*`/`--level-1..8`; sempre usar essas variáveis (nunca hardcode de cor).
+- **`styles/global.css`** — CSS custom properties (tema escuro azulado com acento lilás `#9184d9`, Inter em `px` nos pesos 400/500/600 — carregada no `index.html`), espelhando o sistema do projeto `carteira`. Vocabulário único de tokens `--color-*`/`--radius-*`/`--level-1..8` + as escalas `--color-neutral-100..900` e `--color-accent-100..900`; sempre usar essas variáveis (nunca hardcode de cor). O acento é claro: texto sobre preenchimento de acento usa `--color-on-accent` (escuro).
 
 ### Endpoints
 

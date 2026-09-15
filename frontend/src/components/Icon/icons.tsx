@@ -1,4 +1,4 @@
-import { SvgIcon as Icon, type IconProps } from "../Icon/SvgIcon";
+import { SvgIcon as Icon, type IconProps } from "./SvgIcon";
 
 export function HomeIcon({ className }: IconProps) {
   return (

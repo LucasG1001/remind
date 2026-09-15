@@ -1,5 +1,5 @@
 import { usePushNotifications } from "../../hooks/usePushNotifications";
-import { BellIcon } from "../Sidebar/Sidebar.icons";
+import { BellIcon } from "../Icon/icons";
 import styles from "./PushBanner.module.css";
 
 export function PushBanner() {

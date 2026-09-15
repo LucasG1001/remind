@@ -87,12 +87,6 @@ export function HabitsPage() {
       {!loading && !error && habits.length > 0 && (
         <>
           <TodayHeader habits={habits} />
-          <div className={styles.actionsRow}>
-            <button className={styles.newButton} aria-label="Novo hábito" onClick={openCreate}>
-              <span className={styles.newPlus} aria-hidden="true">+</span>
-              <span className={styles.newLabel}>Novo hábito</span>
-            </button>
-          </div>
           <TodayHabitList
             habits={habits}
             onToggle={handleToggle}

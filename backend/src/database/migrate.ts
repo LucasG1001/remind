@@ -209,8 +209,6 @@ export async function migrate(): Promise<void> {
       id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       question          TEXT NOT NULL,
       answer            TEXT NOT NULL,
-      question_images   TEXT[] NOT NULL DEFAULT '{}',
-      answer_images     TEXT[] NOT NULL DEFAULT '{}',
       category_id       UUID REFERENCES flashcard_categories(id) ON DELETE SET NULL,
       box               INTEGER NOT NULL DEFAULT 1,
       next_review_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -263,6 +261,10 @@ export async function migrate(): Promise<void> {
   await pool.query(`ALTER TABLE flashcards DROP COLUMN IF EXISTS interval_days`);
   await pool.query(`ALTER TABLE flashcards DROP COLUMN IF EXISTS repetitions`);
   await pool.query(`ALTER TABLE flashcards DROP COLUMN IF EXISTS lapses`);
+
+  // Imagens de flashcard (data URLs base64) foram removidas do produto.
+  await pool.query(`ALTER TABLE flashcards DROP COLUMN IF EXISTS question_images`);
+  await pool.query(`ALTER TABLE flashcards DROP COLUMN IF EXISTS answer_images`);
 
   await pool.query(`
     CREATE INDEX IF NOT EXISTS flashcards_due_idx ON flashcards (next_review_at);

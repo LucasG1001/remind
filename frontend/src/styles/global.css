@@ -1,69 +1,100 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 :root {
-  --color-bg-primary: #0a0a0f;
-  --color-bg-secondary: #12121a;
-  --color-bg-tertiary: #1a1a28;
-  --color-bg-card: #16162266;
-  --color-bg-hover: #1e1e30;
-  --color-bg-overlay: rgba(0, 0, 0, 0.6);
-  --color-bg-drawer: #0e0e16;
-  --color-bg-done: #0e1216;
+  --color-bg: #161826;
+  --color-surface: #232532;
+  --color-text: #e9e9ed;
+  --color-accent: #9184d9;
+  --color-divider: color-mix(in srgb, var(--color-text) 16%, transparent);
 
-  --color-surface: #1c1c2e;
-  --color-surface-hover: #252540;
+  --color-neutral-100: #f3f5fe;
+  --color-neutral-200: #e4e7f5;
+  --color-neutral-300: #cfd3e5;
+  --color-neutral-400: #b2b6ca;
+  --color-neutral-500: #9397ab;
+  --color-neutral-600: #75798c;
+  --color-neutral-700: #595d6c;
+  --color-neutral-800: #3f424d;
+  --color-neutral-900: #292b31;
 
-  --color-border: #2a2a40;
-  --color-border-subtle: #1e1e30;
-  --color-border-faint: #15151f;
+  --color-accent-100: #f5f4ff;
+  --color-accent-200: #e7e5fe;
+  --color-accent-300: #d2cefd;
+  --color-accent-400: #b5abfc;
+  --color-accent-500: #968ae0;
+  --color-accent-600: #796cbf;
+  --color-accent-700: #5d5294;
+  --color-accent-800: #423a6a;
+  --color-accent-900: #2b2741;
 
-  --color-text-primary: #e8e8f0;
-  --color-text-secondary: #9090a8;
-  --color-text-tertiary: #606078;
-  --color-text-accent: #8b5cf6;
+  --color-accent-tint: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  --color-accent-tint-strong: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  --color-accent-line: color-mix(in srgb, var(--color-accent) 45%, transparent);
 
-  --color-accent: #8b5cf6;
-  --color-accent-hover: #7c3aed;
-  --color-accent-subtle: rgba(139, 92, 246, 0.12);
-  --color-accent-glow: rgba(139, 92, 246, 0.3);
+  --color-warn: oklch(0.68 0.13 12);
+  --color-warn-tint: color-mix(in srgb, var(--color-warn) 12%, transparent);
 
-  --color-success: #10b981;
-  --color-success-subtle: rgba(16, 185, 129, 0.12);
-  --color-on-success: #06281e;
-  --color-warning: #f59e0b;
-  --color-warning-subtle: rgba(245, 158, 11, 0.12);
-  --color-error: #ef4444;
-  --color-error-subtle: rgba(239, 68, 68, 0.12);
-  --color-error-hover: #fca5a5;
-  --color-error-soft: rgba(239, 68, 68, 0.2);
-  --color-error-border: rgba(239, 68, 68, 0.28);
-  --color-error-outline: rgba(248, 113, 113, 0.4);
-  --color-error-bg-faint: rgba(248, 113, 113, 0.08);
-  --color-success-soft: rgba(16, 185, 129, 0.2);
-  --color-info: #3b82f6;
-  --color-info-subtle: rgba(59, 130, 246, 0.12);
+  --color-bg-primary: var(--color-bg);
+  --color-bg-secondary: #1b1d29;
+  --color-bg-tertiary: var(--color-bg);
+  --color-bg-card: var(--color-surface);
+  --color-bg-hover: #2b2e3d;
+  --color-bg-overlay: color-mix(in srgb, var(--color-bg) 66%, transparent);
+  --color-bg-drawer: var(--color-surface);
+  --color-bg-done: #1b1d29;
 
-  --color-on-accent: #ffffff;
-  --color-accent-light: #a78bfa;
-  --color-accent-lighter: #c4b5fd;
+  --color-surface-hover: #2b2d3c;
 
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --color-border: var(--color-neutral-800);
+  --color-border-subtle: var(--color-neutral-900);
+  --color-border-faint: #202229;
 
-  --font-size-xs: 0.6875rem;
-  --font-size-sm: 0.75rem;
-  --font-size-base: 0.875rem;
-  --font-size-md: 1rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.375rem;
-  --font-size-2xl: 1.75rem;
-  --font-size-3xl: 2.25rem;
+  --color-text-primary: var(--color-text);
+  --color-text-secondary: var(--color-neutral-400);
+  --color-text-tertiary: var(--color-neutral-500);
+  --color-text-accent: var(--color-accent-300);
 
-  --font-weight-light: 300;
+  --color-accent-hover: var(--color-accent-400);
+  --color-accent-subtle: var(--color-accent-tint);
+  --color-accent-glow: color-mix(in srgb, var(--color-accent) 30%, transparent);
+
+  --color-success: oklch(0.74 0.1 162);
+  --color-success-subtle: color-mix(in srgb, var(--color-success) 12%, transparent);
+  --color-success-soft: color-mix(in srgb, var(--color-success) 20%, transparent);
+  --color-on-success: #0a2a22;
+  --color-warning: oklch(0.78 0.12 75);
+  --color-warning-subtle: color-mix(in srgb, var(--color-warning) 12%, transparent);
+  --color-error: var(--color-warn);
+  --color-error-subtle: var(--color-warn-tint);
+  --color-error-hover: oklch(0.8 0.09 12);
+  --color-error-soft: color-mix(in srgb, var(--color-warn) 20%, transparent);
+  --color-error-border: color-mix(in srgb, var(--color-warn) 28%, transparent);
+  --color-error-outline: color-mix(in srgb, var(--color-warn) 40%, transparent);
+  --color-error-bg-faint: color-mix(in srgb, var(--color-warn) 8%, transparent);
+  --color-info: var(--color-accent-400);
+  --color-info-subtle: color-mix(in srgb, var(--color-accent-400) 12%, transparent);
+
+  /* O acento é claro: texto sobre preenchimento de acento precisa ser escuro. */
+  --color-on-accent: #1a1730;
+  --color-accent-light: var(--color-accent-400);
+  --color-accent-lighter: var(--color-accent-300);
+
+  --font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 15px;
+  --font-size-xl: 19px;
+  --font-size-2xl: 26px;
+  --font-size-3xl: 44px;
+
+  /* Só 400/500/600 são carregados; os demais nomes apontam para o mais próximo. */
+  --font-weight-light: 400;
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
-  --font-weight-bold: 700;
-  --font-weight-extrabold: 800;
+  --font-weight-bold: 600;
+  --font-weight-extrabold: 600;
 
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
@@ -74,41 +105,40 @@
   --spacing-2xl: 2rem;
   --spacing-3xl: 3rem;
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
   --radius-lg: 14px;
   --radius-xl: 20px;
   --radius-full: 9999px;
 
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 0 0 1px var(--color-neutral-800);
+  --shadow-md: 0 0 0 1px var(--color-neutral-700), 0 6px 18px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 0 0 1px var(--color-neutral-700), 0 16px 40px rgba(0, 0, 0, 0.65);
   --shadow-glow: 0 0 20px var(--color-accent-glow);
 
   --transition-fast: 150ms ease;
   --transition-base: 250ms ease;
   --transition-slow: 400ms ease;
 
-  --content-width: 760px;
   /* Escala de breakpoints (referência — CSS não aceita var() em @media):
-     768px = tablet/layout (Sidebar→bottom-nav, grids 2→1 col, padding de página)
+     768px = tablet/layout (topbar→bottom-nav, grids 2→1 col, padding de página)
      480px = celular (ajustes finos de componentes) */
   --breakpoint-mobile: 768px;
   --breakpoint-phone: 480px;
 
-  --sidebar-width: 240px;
-  --sidebar-collapsed: 72px;
+  --topbar-height: 62px;
   --mobile-nav-height: 64px;
+  --content-max: 1400px;
 
   --streak-color: var(--color-accent);
-  --level-1: #6b7280;
-  --level-2: #4ade80;
-  --level-3: #22d3ee;
-  --level-4: #818cf8;
-  --level-5: #facc15;
-  --level-6: #fb923c;
-  --level-7: #38bdf8;
-  --level-8: #f472b6;
+  --level-1: #75798c;
+  --level-2: #68bda9;
+  --level-3: #7fb8d9;
+  --level-4: #7f9de6;
+  --level-5: #d7b36a;
+  --level-6: #dd9a7f;
+  --level-7: #9184d9;
+  --level-8: #d98fc0;
 }
 
 *, *::before, *::after {
@@ -127,7 +157,9 @@ body {
   font-family: var(--font-family);
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
-  line-height: 1.6;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-regular);
+  line-height: 1.55;
   min-height: 100vh;
   min-height: 100dvh;
   overflow-x: hidden;
@@ -136,6 +168,12 @@ body {
 #root {
   min-height: 100vh;
   min-height: 100dvh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: var(--font-weight-medium);
+  line-height: 1.12;
+  letter-spacing: -0.015em;
 }
 
 a {
@@ -156,10 +194,10 @@ input, select, textarea {
   font-family: var(--font-family);
   color: var(--color-text-primary);
   background-color: var(--color-bg-tertiary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
   padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-md);
   outline: none;
   transition: border-color var(--transition-fast);
 }
@@ -168,16 +206,35 @@ input:focus, select:focus, textarea:focus {
   border-color: var(--color-accent);
 }
 
-/* iOS dá zoom ao focar campos com fonte < 16px; no mobile garantimos 16px. */
+input, textarea {
+  caret-color: var(--color-accent);
+}
+
+/* iOS dá zoom ao focar campos com fonte < 16px; nenhum token da escala chega a
+   16px, então no mobile o valor é literal. */
 @media (max-width: 768px) {
   input, select, textarea {
-    font-size: var(--font-size-md);
+    font-size: 16px;
   }
 }
 
 img {
   display: block;
   max-width: 100%;
+}
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  color: var(--color-text);
 }
 
 ::-webkit-scrollbar {
@@ -190,12 +247,12 @@ img {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: var(--color-neutral-800);
   border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-tertiary);
+  background: var(--color-neutral-700);
 }
 
 @keyframes fadeIn {

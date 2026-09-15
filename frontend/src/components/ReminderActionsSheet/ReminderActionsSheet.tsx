@@ -1,4 +1,4 @@
-import { CheckIcon, ClockIcon } from "../Sidebar/Sidebar.icons";
+import { CheckIcon, ClockIcon } from "../Icon/icons";
 import { toFormParts } from "../../utils/format";
 import { useDismiss } from "../../hooks/useDismiss";
 import type { Reminder, RescheduleInput } from "../../types/reminder";

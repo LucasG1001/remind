@@ -1,0 +1,119 @@
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 7px var(--spacing-md);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.trigger:hover,
+.triggerOpen {
+  border-color: var(--color-accent-line);
+  background: var(--color-bg-hover);
+}
+
+.triggerIcon {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  color: var(--color-accent-300);
+}
+
+.triggerLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+  transition: transform var(--transition-fast);
+}
+
+.triggerOpen .chevron {
+  transform: rotate(180deg);
+}
+
+.menu {
+  position: fixed;
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  animation: fadeIn var(--transition-fast);
+}
+
+.menuTitle {
+  padding: 4px var(--spacing-md) var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: 9px var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  color: var(--color-neutral-300);
+  text-align: left;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.option:hover {
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-text-primary) 7%, transparent);
+}
+
+.optionActive,
+.optionActive:hover {
+  color: var(--color-accent-200);
+  background: var(--color-accent-tint);
+}
+
+.optionIcon {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.optionLabel {
+  flex: 1;
+  min-width: 0;
+}
+
+.optionCheck {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* Em telas estreitas o nome da seção sai: a barra inferior já sinaliza onde
+   se está, e o espaço fica para o contexto da página. */
+@media (max-width: 640px) {
+  .triggerLabel {
+    display: none;
+  }
+
+  .trigger {
+    padding-inline: var(--spacing-sm);
+  }
+}

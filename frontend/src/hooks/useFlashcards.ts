@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { Flashcard, FlashcardFormData, FlashcardSummary } from "../types/flashcard";
+import type { Flashcard, FlashcardFormData } from "../types/flashcard";
 import {
   fetchFlashcards,
   createFlashcard as apiCreateFlashcard,
@@ -12,7 +12,7 @@ import { useFetchList } from "./useFetchList";
 import { countDue } from "../utils/flashcardUtils";
 
 interface UseFlashcardsReturn {
-  cards: FlashcardSummary[];
+  cards: Flashcard[];
   loading: boolean;
   error: string | null;
   dueCount: number;
@@ -30,7 +30,7 @@ export function useFlashcards(): UseFlashcardsReturn {
     setItems: setCards,
     loading,
     error,
-  } = useFetchList<FlashcardSummary>(fetchFlashcards, "Não foi possível carregar os flashcards.");
+  } = useFetchList<Flashcard>(fetchFlashcards, "Não foi possível carregar os flashcards.");
 
   const dueCount = useMemo(() => countDue(cards), [cards]);
 

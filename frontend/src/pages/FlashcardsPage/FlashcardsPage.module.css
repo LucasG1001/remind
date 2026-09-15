@@ -2,61 +2,34 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xl);
-  max-width: var(--content-width);
+  max-width: var(--content-max);
   margin: 0 auto;
   padding: var(--spacing-2xl);
 }
 
-.topBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-base);
-}
-
-.newButton {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  padding: var(--spacing-sm) var(--spacing-base);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
-  line-height: 1;
-  white-space: nowrap;
-  transition: background var(--transition-fast), transform var(--transition-fast);
-}
-
-.newButton:hover {
-  background: var(--color-accent-hover);
-  transform: translateY(-1px);
-}
-
-.newPlus {
-  font-weight: var(--font-weight-bold);
-  line-height: 1;
-}
-
+/* Segmented control renderizado por portal dentro do header (TopNav);
+   a altura acompanha os gatilhos de dropdown vizinhos. */
 .tabs {
   display: flex;
-  gap: var(--spacing-xs);
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 2px;
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  padding: var(--spacing-xs);
+  background: var(--color-bg-secondary);
 }
 
 .tab {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-xl);
-  border-radius: var(--radius-sm);
+  padding: 5px var(--spacing-base);
+  border-radius: 6px;
   font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary);
+  white-space: nowrap;
   transition: color var(--transition-fast), background var(--transition-fast);
 }
 
@@ -66,23 +39,23 @@
 
 .tabActive,
 .tabActive:hover {
-  color: var(--color-accent);
-  background: var(--color-accent-subtle);
-  box-shadow: inset 0 0 0 1px var(--color-accent);
+  color: var(--color-accent-200);
+  background: var(--color-accent-tint-strong);
 }
 
 .badge {
-  min-width: 20px;
-  height: 20px;
+  min-width: 18px;
+  height: 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 var(--spacing-xs);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
+  padding: 0 5px;
+  background: var(--color-accent-600);
+  color: var(--color-accent-100);
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
 }
 
 .muted {
@@ -100,18 +73,5 @@
 @media (max-width: 768px) {
   .page {
     padding: var(--spacing-base);
-  }
-
-  .newButton {
-    display: none;
-  }
-
-  .tabs {
-    flex: 1;
-  }
-
-  .tab {
-    flex: 1;
-    justify-content: center;
   }
 }

@@ -1,16 +1,12 @@
 import { del, get, post, put } from "./api";
-import type { Flashcard, FlashcardFormData, FlashcardSummary } from "../types/flashcard";
+import type { Flashcard, FlashcardFormData } from "../types/flashcard";
 
-export function fetchFlashcards(): Promise<FlashcardSummary[]> {
-  return get<FlashcardSummary[]>("/api/flashcards");
+export function fetchFlashcards(): Promise<Flashcard[]> {
+  return get<Flashcard[]>("/api/flashcards");
 }
 
 export function fetchDueFlashcards(): Promise<Flashcard[]> {
   return get<Flashcard[]>("/api/flashcards/due");
-}
-
-export function fetchFlashcard(id: string): Promise<Flashcard> {
-  return get<Flashcard>(`/api/flashcards/${id}`);
 }
 
 export function createFlashcard(data: FlashcardFormData): Promise<Flashcard> {

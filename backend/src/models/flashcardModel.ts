@@ -6,15 +6,10 @@ import type {
   Flashcard,
   FlashcardPatch,
   FlashcardRow,
-  FlashcardSummary,
-  FlashcardSummaryRow,
   NewFlashcard,
 } from "../types/flashcard.js";
 
-const SUMMARY_COLUMNS =
-  "id, question, answer, category_id, box, next_review_at, last_reviewed_at, created_at, updated_at";
-
-function toFlashcardSummary(row: FlashcardSummaryRow): FlashcardSummary {
+function toFlashcard(row: FlashcardRow): Flashcard {
   return {
     id: row.id,
     question: row.question,
@@ -28,19 +23,11 @@ function toFlashcardSummary(row: FlashcardSummaryRow): FlashcardSummary {
   };
 }
 
-function toFlashcard(row: FlashcardRow): Flashcard {
-  return {
-    ...toFlashcardSummary(row),
-    questionImages: row.question_images,
-    answerImages: row.answer_images,
-  };
-}
-
-export async function findAllSummaries(): Promise<FlashcardSummary[]> {
-  const result = await pool.query<FlashcardSummaryRow>(
-    `SELECT ${SUMMARY_COLUMNS} FROM flashcards ORDER BY created_at DESC`
+export async function findAll(): Promise<Flashcard[]> {
+  const result = await pool.query<FlashcardRow>(
+    "SELECT * FROM flashcards ORDER BY created_at DESC"
   );
-  return result.rows.map(toFlashcardSummary);
+  return result.rows.map(toFlashcard);
 }
 
 export async function findDue(): Promise<Flashcard[]> {
@@ -57,10 +44,10 @@ export async function findById(id: string): Promise<Flashcard | null> {
 
 export async function createFlashcard(data: NewFlashcard): Promise<Flashcard> {
   const result = await pool.query<FlashcardRow>(
-    `INSERT INTO flashcards (question, answer, question_images, answer_images, category_id)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO flashcards (question, answer, category_id)
+     VALUES ($1, $2, $3)
      RETURNING *`,
-    [data.question, data.answer, data.questionImages, data.answerImages, data.categoryId]
+    [data.question, data.answer, data.categoryId]
   );
   return toFlashcard(result.rows[0]!);
 }
@@ -69,8 +56,6 @@ export async function updateFlashcard(id: string, patch: FlashcardPatch): Promis
   const { sets, values, nextIndex } = buildUpdateSet(patch, {
     question: "question",
     answer: "answer",
-    questionImages: "question_images",
-    answerImages: "answer_images",
     categoryId: "category_id",
   });
   const row = await updateById<FlashcardRow>("flashcards", id, sets, values, nextIndex);

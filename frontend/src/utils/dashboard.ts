@@ -108,5 +108,5 @@ export function urgencyStyle(when: number): { borderLeftColor: string } | undefi
   if (hours >= 24) return undefined;
   const intensity = Math.max(0, Math.min(1, 1 - hours / 24));
   const alpha = (0.25 + intensity * 0.6).toFixed(2);
-  return { borderLeftColor: `rgba(239, 68, 68, ${alpha})` };
+  return { borderLeftColor: `color-mix(in srgb, var(--color-warn) ${Math.round(Number(alpha) * 100)}%, transparent)` };
 }

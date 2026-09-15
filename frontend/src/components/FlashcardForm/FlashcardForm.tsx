@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Flashcard, FlashcardFormData } from "../../types/flashcard";
 import type { FlashcardCategory } from "../../types/flashcardCategory";
-import { ImagePasteArea } from "../ImagePasteArea/ImagePasteArea";
 import { ConfirmButton } from "../ConfirmButton/ConfirmButton";
 import { useDismiss } from "../../hooks/useDismiss";
+import { useAutoGrow } from "../../hooks/useAutoGrow";
 import { NEUTRAL_TINTS, tints } from "../../utils/flashcardPalette";
 import styles from "./FlashcardForm.module.css";
 
@@ -26,12 +26,15 @@ export function FlashcardForm({
 }: FlashcardFormProps) {
   const [question, setQuestion] = useState(initialData?.question ?? "");
   const [answer, setAnswer] = useState(initialData?.answer ?? "");
-  const [questionImages, setQuestionImages] = useState<string[]>(initialData?.questionImages ?? []);
-  const [answerImages, setAnswerImages] = useState<string[]>(initialData?.answerImages ?? []);
   const [categoryId, setCategoryId] = useState<string | null>(
     initialData?.categoryId ?? categories[0]?.id ?? null
   );
 
+  const questionRef = useRef<HTMLTextAreaElement | null>(null);
+  const answerRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useAutoGrow(questionRef, question);
+  useAutoGrow(answerRef, answer);
   useDismiss(onClose);
 
   const isValid = question.trim().length > 0 && answer.trim().length > 0;
@@ -42,8 +45,6 @@ export function FlashcardForm({
     onSave({
       question: question.trim(),
       answer: answer.trim(),
-      questionImages,
-      answerImages,
       categoryId,
     });
   }
@@ -86,41 +87,35 @@ export function FlashcardForm({
             </div>
           </div>
 
-          <ImagePasteArea
-            id="flashcard-question"
-            label="Frente (pergunta)"
-            value={question}
-            onChange={setQuestion}
-            images={questionImages}
-            onImagesChange={setQuestionImages}
-            autoFocus
-          />
-
-          <ImagePasteArea
-            id="flashcard-answer"
-            label="Verso (resposta)"
-            value={answer}
-            onChange={setAnswer}
-            images={answerImages}
-            onImagesChange={setAnswerImages}
-          />
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="flashcard-question">
+              Frente (pergunta)
+            </label>
+            <textarea
+              id="flashcard-question"
+              ref={questionRef}
+              className={styles.textarea}
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              rows={1}
+              maxLength={10000}
+              autoFocus
+            />
+          </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Pré-visualização</label>
-            <div className={styles.preview}>
-              <div className={styles.previewFront}>
-                <span className={styles.previewKind}>FRENTE</span>
-                <p className={styles.previewText}>
-                  {question.trim() || "A frente do cartão aparece aqui…"}
-                </p>
-              </div>
-              <div className={styles.previewBack}>
-                <span className={styles.previewKindBack}>VERSO</span>
-                <p className={styles.previewText}>
-                  {answer.trim() || "O verso (resposta) aparece aqui…"}
-                </p>
-              </div>
-            </div>
+            <label className={styles.label} htmlFor="flashcard-answer">
+              Verso (resposta)
+            </label>
+            <textarea
+              id="flashcard-answer"
+              ref={answerRef}
+              className={styles.textarea}
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              rows={1}
+              maxLength={10000}
+            />
           </div>
 
           {error && <p className={styles.formError}>{error}</p>}

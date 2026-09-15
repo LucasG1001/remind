@@ -7,7 +7,7 @@ import { formatSelectedDays } from "../../utils/weekdays";
 import { useDismiss } from "../../hooks/useDismiss";
 import { ConfirmButton } from "../ConfirmButton/ConfirmButton";
 import { CompletionGrid } from "../CompletionGrid/CompletionGrid";
-import { CheckMarkIcon, ChevronIcon, MinusIcon, PlusIcon, TrashIcon } from "../Sidebar/Sidebar.icons";
+import { CheckMarkIcon, ChevronIcon, MinusIcon, PlusIcon, TrashIcon } from "../Icon/icons";
 import styles from "./SidePanel.module.css";
 
 interface SidePanelProps {

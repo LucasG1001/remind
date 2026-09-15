@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { useFlashcards } from "../../hooks/useFlashcards";
 import { useFlashcardCategories } from "../../hooks/useFlashcardCategories";
@@ -6,8 +7,8 @@ import { FlashcardReview } from "../../components/FlashcardReview/FlashcardRevie
 import { FlashcardList } from "../../components/FlashcardList/FlashcardList";
 import { FlashcardForm } from "../../components/FlashcardForm/FlashcardForm";
 import { FlashcardCategoryModal } from "../../components/FlashcardCategoryModal/FlashcardCategoryModal";
-import { fetchFlashcard } from "../../services/flashcardService";
-import { alertApiError, apiErrorMessage } from "../../utils/apiError";
+import { useHeaderSlot } from "../../context/useHeaderSlot";
+import { apiErrorMessage } from "../../utils/apiError";
 import type { Flashcard, FlashcardFormData } from "../../types/flashcard";
 import styles from "./FlashcardsPage.module.css";
 
@@ -37,19 +38,13 @@ export function FlashcardsPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  const headerSlot = useHeaderSlot();
 
   const formMode: "create" | "edit" | null = editing
     ? "edit"
     : searchParams.get("novo") === "1"
       ? "create"
       : null;
-
-  const openCreate = useCallback(() => {
-    setEditing(null);
-    setFormError(null);
-    setMode("manage");
-    setSearchParams({ novo: "1" });
-  }, [setSearchParams]);
 
   const closeForm = useCallback(() => {
     setEditing(null);
@@ -69,11 +64,9 @@ export function FlashcardsPage() {
     [formMode, editing, updateCard, createCard, closeForm]
   );
 
-  const handleEdit = useCallback((id: string) => {
+  const handleEdit = useCallback((card: Flashcard) => {
     setFormError(null);
-    fetchFlashcard(id)
-      .then(setEditing)
-      .catch((err) => alertApiError(err, "Não foi possível carregar o flashcard."));
+    setEditing(card);
   }, []);
 
   const handleDelete = useCallback(() => {
@@ -83,36 +76,33 @@ export function FlashcardsPage() {
       .catch((err) => setFormError(apiErrorMessage(err, "Não foi possível excluir o flashcard.")));
   }, [editing, deleteCard, closeForm]);
 
+  const tabs = (
+    <div className={styles.tabs} role="tablist">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mode === "study"}
+        className={`${styles.tab} ${mode === "study" ? styles.tabActive : ""}`}
+        onClick={() => setMode("study")}
+      >
+        Estudar
+        {dueCount > 0 && <span className={styles.badge}>{dueCount}</span>}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mode === "manage"}
+        className={`${styles.tab} ${mode === "manage" ? styles.tabActive : ""}`}
+        onClick={() => setMode("manage")}
+      >
+        Gerenciar
+      </button>
+    </div>
+  );
+
   return (
     <div className={styles.page}>
-      <div className={styles.topBar}>
-        <div className={styles.tabs} role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === "study"}
-            className={`${styles.tab} ${mode === "study" ? styles.tabActive : ""}`}
-            onClick={() => setMode("study")}
-          >
-            Estudar
-            {dueCount > 0 && <span className={styles.badge}>{dueCount}</span>}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === "manage"}
-            className={`${styles.tab} ${mode === "manage" ? styles.tabActive : ""}`}
-            onClick={() => setMode("manage")}
-          >
-            Gerenciar
-          </button>
-        </div>
-
-        <button className={styles.newButton} aria-label="Novo flashcard" onClick={openCreate}>
-          <span className={styles.newPlus} aria-hidden="true">+</span>
-          <span className={styles.newLabel}>Novo cartão</span>
-        </button>
-      </div>
+      {headerSlot && createPortal(tabs, headerSlot)}
 
       {loading && <p className={styles.muted}>Carregando…</p>}
       {error && <p className={styles.error}>{error}</p>}

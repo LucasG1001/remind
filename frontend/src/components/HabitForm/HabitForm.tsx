@@ -4,7 +4,7 @@ import { DEFAULT_ICON_KEY, ICON_LIBRARY } from "../../utils/iconLibrary";
 import { useDismiss } from "../../hooks/useDismiss";
 import { DaySelector } from "../DaySelector/DaySelector";
 import { ConfirmButton } from "../ConfirmButton/ConfirmButton";
-import { CloseIcon, MinusIcon, PlusIcon, TrashIcon } from "../Sidebar/Sidebar.icons";
+import { CloseIcon, MinusIcon, PlusIcon, TrashIcon } from "../Icon/icons";
 import styles from "./HabitForm.module.css";
 
 interface HabitFormProps {

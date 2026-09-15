@@ -6,30 +6,32 @@
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  margin-left: calc(-1 * var(--spacing-md));
+  padding: 7px var(--spacing-md);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  transition: background var(--transition-fast);
+  background: var(--color-bg-secondary);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .trigger:hover {
+  border-color: var(--color-accent-line);
   background: var(--color-bg-hover);
 }
 
 .name {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  overflow-wrap: anywhere;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .caret {
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  color: var(--color-text-secondary);
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-tertiary);
   transition: transform var(--transition-fast);
 }
 
@@ -47,11 +49,11 @@
   flex-direction: column;
   gap: 2px;
   padding: var(--spacing-sm);
-  background: var(--color-bg-secondary);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  z-index: 100;
+  z-index: 400;
   animation: fadeIn var(--transition-fast);
 }
 

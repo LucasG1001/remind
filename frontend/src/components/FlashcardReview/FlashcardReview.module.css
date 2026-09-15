@@ -54,7 +54,7 @@
   font-size: var(--font-size-xs);
   padding: 1px var(--spacing-sm);
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
   color: inherit;
 }
 
@@ -104,6 +104,9 @@
   perspective: 1600px;
   cursor: pointer;
   min-height: 340px;
+  max-width: 720px;
+  width: 100%;
+  align-self: center;
 }
 
 .cardInner {
@@ -191,19 +194,6 @@
   color: var(--color-text-primary);
 }
 
-.images {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
-  justify-content: center;
-}
-
-.image {
-  max-height: 160px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-}
-
 .hint {
   text-align: center;
   font-size: var(--font-size-sm);
@@ -273,10 +263,6 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   animation: cardEnter var(--transition-base) ease;
-}
-
-.emoji {
-  font-size: 2.5rem;
 }
 
 .finishedTitle {
