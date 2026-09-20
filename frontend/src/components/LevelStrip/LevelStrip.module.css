@@ -1,0 +1,36 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.strip {
+  display: grid;
+  grid-template-columns: repeat(30, 1fr);
+  gap: 2px;
+  height: 22px;
+}
+
+.cell {
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  box-shadow: inset 0 0 0 1px var(--color-neutral-900);
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.filled {
+  background: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.next {
+  box-shadow: inset 0 0 0 1px var(--color-neutral-900), 0 0 0 1.5px var(--color-accent-400);
+}
+
+.caption {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}

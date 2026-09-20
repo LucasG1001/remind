@@ -4,12 +4,11 @@ import { useReminders } from "../../hooks/useReminders";
 import { useHabits } from "../../hooks/useHabits";
 import { BellIcon, CheckIcon, CalendarIcon } from "../../components/Icon/icons";
 import { useCalendar } from "../../context/useCalendar";
-import { groupByDay, itemTime, startOfToday, type TimelineItem } from "../../utils/agenda";
+import { groupByDay, itemTime, startOfToday, todayLabel, type TimelineItem } from "../../utils/agenda";
 import {
   summarizeReminders,
   summarizeHabits,
   greeting,
-  todayLabel,
   urgencyStyle,
 } from "../../utils/dashboard";
 import { remainingLabel, dayRemainingLabel } from "../../utils/format";

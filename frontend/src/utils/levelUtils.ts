@@ -1,15 +1,8 @@
 import type { DayOfWeek, HabitCompletion } from "../types/habit";
-import { hasConsecutiveMissedDays } from "./streakUtils";
+import { addDays, formatDateKey, getDayOfWeek, getToday, isSameDay, spCalendarDay } from "./dateUtils";
 
-const LEVEL_ICONS: Record<number, string> = {
-  1: "🌱",
-  2: "🌿",
-  3: "🪴",
-  4: "🌳",
-  5: "⭐",
-  6: "🔥",
-  7: "💎",
-};
+export const LEVEL_STEP = 30;
+export const LEVEL_DROP_MISSES = 3;
 
 const LEVEL_COLORS: Record<number, string> = {
   1: "var(--level-1)",
@@ -21,9 +14,9 @@ const LEVEL_COLORS: Record<number, string> = {
   7: "var(--level-7)",
 };
 
-export function getLevelIcon(level: number): string {
-  if (level >= 8) return "👑";
-  return LEVEL_ICONS[level] ?? "🌱";
+export interface LevelProgress {
+  level: number;
+  progress: number;
 }
 
 export function getLevelColor(level: number): string {
@@ -31,16 +24,43 @@ export function getLevelColor(level: number): string {
   return LEVEL_COLORS[level] ?? "var(--level-1)";
 }
 
-export function calculateLevel(
-  longestStreak: number,
+/**
+ * Varredura única de createdAt até hoje, só nos dias agendados: LEVEL_STEP concluídos seguidos
+ * sobem um nível e zeram o progresso; cada bloco de LEVEL_DROP_MISSES perdidos seguidos derruba um.
+ * Hoje ainda não é falta enquanto o dia não fecha.
+ */
+export function calculateLevelProgress(
   completions: HabitCompletion[],
-  selectedDays: DayOfWeek[]
-): number {
-  let level = Math.floor(longestStreak / 30) + 1;
+  selectedDays: DayOfWeek[],
+  createdAt: string
+): LevelProgress {
+  if (selectedDays.length === 0) return { level: 1, progress: 0 };
 
-  if (hasConsecutiveMissedDays(completions, selectedDays)) {
-    level = level - 1;
+  const done = new Set(completions.filter((c) => c.completed).map((c) => c.date));
+  const today = getToday();
+  let date = spCalendarDay(new Date(createdAt));
+
+  let level = 1;
+  let progress = 0;
+  let misses = 0;
+
+  while (date <= today) {
+    if (selectedDays.includes(getDayOfWeek(date))) {
+      if (done.has(formatDateKey(date))) {
+        misses = 0;
+        progress += 1;
+        if (progress >= LEVEL_STEP) {
+          level += 1;
+          progress = 0;
+        }
+      } else if (!isSameDay(date, today)) {
+        progress = 0;
+        misses += 1;
+        if (misses % LEVEL_DROP_MISSES === 0) level = Math.max(1, level - 1);
+      }
+    }
+    date = addDays(date, 1);
   }
 
-  return Math.max(1, level);
+  return { level, progress };
 }

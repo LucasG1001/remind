@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchVapidPublicKey, registerSubscription, removeSubscription } from "../services/pushService";
 import { urlBase64ToArrayBuffer } from "../utils/push";
-import { apiErrorMessage } from "../utils/apiError";
+import { apiErrorMessage, apiErrorStatus } from "../utils/apiError";
 
 const SW_URL = "/sw.js";
 
@@ -16,6 +16,7 @@ export function usePushNotifications() {
   );
   const [subscribed, setSubscribed] = useState<boolean | null>(() => (supported ? null : false));
   const [busy, setBusy] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,13 +47,15 @@ export function usePushNotifications() {
     setBusy(true);
     setError(null);
     try {
+      // A chave do servidor vem antes do prompt: sem ela o fluxo morre logo
+      // depois, e o usuário teria concedido a permissão à toa.
+      const { publicKey } = await fetchVapidPublicKey();
       const granted = await Notification.requestPermission();
       setPermission(granted);
       if (granted !== "granted") {
         setError("Permissão de notificações negada.");
         return;
       }
-      const { publicKey } = await fetchVapidPublicKey();
       const registration = await navigator.serviceWorker.register(SW_URL);
       await navigator.serviceWorker.ready;
       const subscription =
@@ -64,6 +67,7 @@ export function usePushNotifications() {
       await registerSubscription(subscription.toJSON());
       setSubscribed(true);
     } catch (err) {
+      if (apiErrorStatus(err) === 503) setUnavailable(true);
       // A API já responde com uma mensagem em português (ex: VAPID ausente no
       // servidor); esconder isso atrás de um texto genérico custa diagnóstico.
       setError(apiErrorMessage(err, "Não foi possível ativar as notificações neste aparelho."));
@@ -91,5 +95,5 @@ export function usePushNotifications() {
     }
   }, [supported]);
 
-  return { supported, permission, subscribed, busy, error, enable, disable };
+  return { supported, permission, subscribed, busy, unavailable, error, enable, disable };
 }

@@ -4,11 +4,11 @@ import { diffDaysFromToday } from "./dateUtils";
 
 const TZ = "America/Sao_Paulo";
 
-const UNIT_SINGULAR: Record<RecurUnit, string> = {
-  day: "dia",
-  week: "semana",
-  month: "mês",
-  year: "ano",
+const UNIT_EVERY: Record<RecurUnit, string> = {
+  day: "Todos os dias",
+  week: "Toda semana",
+  month: "Todo mês",
+  year: "Todo ano",
 };
 const UNIT_PLURAL: Record<RecurUnit, string> = {
   day: "dias",
@@ -43,8 +43,10 @@ export function toFormParts(iso: string): { date: string; time: string } {
 export function recurrenceLabel(reminder: Reminder): string | null {
   if (!reminder.recurInterval || !reminder.recurUnit) return null;
   const n = reminder.recurInterval;
-  const unit = n === 1 ? UNIT_SINGULAR[reminder.recurUnit] : UNIT_PLURAL[reminder.recurUnit];
-  let base = n === 1 ? `A cada ${unit}` : `A cada ${n} ${unit}`;
+  let base =
+    n === 1
+      ? UNIT_EVERY[reminder.recurUnit]
+      : `A cada ${n} ${UNIT_PLURAL[reminder.recurUnit]}`;
   if (reminder.recurWeekday !== null) {
     base = `${base}, ${WEEKDAYS_PT[reminder.recurWeekday]!.toLowerCase()}`;
   }
@@ -69,6 +71,17 @@ export function formatRemaining(targetMs: number, nowMs: number): string {
   if (minutes > 0) parts.push(`${minutes} ${minutes === 1 ? "minuto" : "minutos"}`);
 
   return parts.join(" ");
+}
+
+/** Rótulo curto de atraso para a lista: "há 2 meses", "há 27 dias", "há 3 horas". */
+export function shortOverdueLabel(targetMs: number, nowMs: number): string {
+  const days = -diffDaysFromToday(targetMs, nowMs);
+  if (days >= 60) return `há ${Math.floor(days / 30)} meses`;
+  if (days >= 30) return "há 1 mês";
+  if (days >= 1) return `há ${days} ${days === 1 ? "dia" : "dias"}`;
+  const hours = Math.floor((nowMs - targetMs) / 3_600_000);
+  if (hours >= 1) return `há ${hours} ${hours === 1 ? "hora" : "horas"}`;
+  return "atrasado";
 }
 
 export function remainingLabel(targetMs: number, nowMs: number): { text: string; overdue: boolean } {

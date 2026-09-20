@@ -1,0 +1,161 @@
+.cells {
+  display: grid;
+  min-width: 0;
+}
+
+.cell {
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.letter {
+  font-size: var(--font-size-xs);
+  line-height: 1;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+/* Semana */
+
+.week {
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--spacing-sm);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.week .cell {
+  width: 100%;
+  height: 34px;
+}
+
+/* Mês */
+
+.monthWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.letters {
+  display: grid;
+  grid-template-columns: repeat(7, 15px);
+  gap: 2px;
+}
+
+.letters .letter {
+  color: var(--color-text-tertiary);
+}
+
+.month {
+  grid-template-columns: repeat(7, 15px);
+  gap: 2px;
+}
+
+.month .cell,
+.month .blank {
+  width: 15px;
+  height: 15px;
+}
+
+/* Ano: coluna = semana, linha = dia da semana (domingo no topo). */
+
+.year {
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 6px);
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 1.5px;
+}
+
+.year .cell,
+.year .blank {
+  border-radius: 2px;
+}
+
+/* Estados */
+
+.completed {
+  background: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.missed {
+  box-shadow: inset 0 0 0 1px var(--color-error-outline);
+}
+
+.pending {
+  box-shadow: inset 0 0 0 1px var(--color-accent-line);
+}
+
+.notScheduled {
+  background: var(--color-bg-secondary);
+}
+
+.future {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+
+.today {
+  box-shadow: inset 0 0 0 1px var(--color-neutral-900), 0 0 0 1.5px var(--color-accent-400);
+}
+
+.completed.today {
+  box-shadow: inset 0 0 0 1px var(--color-accent), 0 0 0 1.5px var(--color-accent-400);
+}
+
+/* O ano é denso demais para contornos: só três tons. */
+
+.year .completed {
+  box-shadow: none;
+}
+
+.year .missed {
+  background: var(--color-neutral-900);
+  box-shadow: none;
+}
+
+.year .pending,
+.year .notScheduled {
+  box-shadow: none;
+}
+
+.year .future {
+  background: transparent;
+  box-shadow: none;
+}
+
+.year .today {
+  box-shadow: 0 0 0 1px var(--color-accent-400);
+}
+
+@media (min-width: 769px) {
+  .week .cell {
+    height: 52px;
+  }
+
+  .letters,
+  .month {
+    grid-template-columns: repeat(7, 22px);
+    gap: 4px;
+  }
+
+  .month .cell,
+  .month .blank {
+    width: 22px;
+    height: 22px;
+  }
+
+  .year {
+    grid-template-rows: repeat(7, 8px);
+    gap: 2px;
+  }
+}

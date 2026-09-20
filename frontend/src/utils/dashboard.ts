@@ -44,8 +44,6 @@ export interface HabitSummary {
   doneToday: number;
   totalToday: number;
   bestStreak: number;
-  recordStreak: number;
-  topLevel: number;
   habitCount: number;
 }
 
@@ -55,13 +53,9 @@ export function summarizeHabits(habits: Habit[]): HabitSummary {
   const todayList: HabitToday[] = [];
 
   let bestStreak = 0;
-  let recordStreak = 0;
-  let topLevel = 0;
 
   for (const habit of habits) {
     bestStreak = Math.max(bestStreak, habit.currentStreak);
-    recordStreak = Math.max(recordStreak, habit.longestStreak);
-    topLevel = Math.max(topLevel, habit.level);
     if (isScheduledDay(today, habit.selectedDays)) {
       const completion = habit.completions.find((c) => c.date === todayKey);
       todayList.push({ habit, completed: Boolean(completion?.completed) });
@@ -75,8 +69,6 @@ export function summarizeHabits(habits: Habit[]): HabitSummary {
     doneToday,
     totalToday: todayList.length,
     bestStreak,
-    recordStreak,
-    topLevel,
     habitCount: habits.length,
   };
 }
@@ -92,15 +84,6 @@ export function greeting(): string {
   if (hour < 12) return "Bom dia";
   if (hour < 18) return "Boa tarde";
   return "Boa noite";
-}
-
-export function todayLabel(): string {
-  return new Date().toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    timeZone: TZ,
-  });
 }
 
 export function urgencyStyle(when: number): { borderLeftColor: string } | undefined {

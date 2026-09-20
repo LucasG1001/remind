@@ -1,33 +1,42 @@
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useReminders } from "../../hooks/useReminders";
 import { ReminderActionsSheet } from "../../components/ReminderActionsSheet/ReminderActionsSheet";
 import { PushBanner } from "../../components/PushBanner/PushBanner";
 import { Timeline } from "../../components/Timeline/Timeline";
-import { BellIcon } from "../../components/Icon/icons";
-import { groupByDay, groupByMonth, splitAgenda, type TimelineItem } from "../../utils/agenda";
-import { recurrenceLabel, remainingLabel, dayRemainingLabel } from "../../utils/format";
+import { RemindersRail } from "../../components/RemindersRail/RemindersRail";
+import { WeekStrip } from "../../components/WeekStrip/WeekStrip";
+import {
+  splitReminders,
+  todayLabel,
+  type TimelineItem,
+  type TimelineSection,
+} from "../../utils/agenda";
+import { recurrenceLabel, shortOverdueLabel } from "../../utils/format";
+import { diffDaysFromToday } from "../../utils/dateUtils";
 import { alertApiError } from "../../utils/apiError";
+import { useHeaderSlot } from "../../context/useHeaderSlot";
+import { useIsMobile } from "../../hooks/useIsMobile";
 import { useMinuteTick } from "../../hooks/useMinuteTick";
 import type { Reminder } from "../../types/reminder";
 import styles from "./RemindersPage.module.css";
 
 function toTimelineItem(reminder: Reminder, now: number): TimelineItem {
   const when = Date.parse(reminder.eventAt);
-  const remaining = reminder.isAllDay ? dayRemainingLabel(when, now) : remainingLabel(when, now);
+  const diff = diffDaysFromToday(when, now);
   return {
     id: reminder.id,
     kind: "reminder",
     title: reminder.title,
     when,
-    detail: recurrenceLabel(reminder) ?? (reminder.isAllDay ? "Dia inteiro" : ""),
+    detail: recurrenceLabel(reminder) ?? "",
     hasTime: !reminder.isAllDay,
-    subtitle: remaining?.text,
-    subtitleTone: remaining?.overdue ? "danger" : undefined,
+    subtitle: diff < 0 ? shortOverdueLabel(when, now) : undefined,
+    subtitleTone: diff < 0 ? "danger" : undefined,
+    tone: diff < 0 ? "danger" : diff === 0 ? "today" : undefined,
   };
 }
-
-const iconForBell = () => BellIcon;
 
 export function RemindersPage() {
   const navigate = useNavigate();
@@ -40,44 +49,84 @@ export function RemindersPage() {
   const selectedReminder = selected ? byId.get(selected.id) ?? selected : null;
 
   const now = useMinuteTick();
+  const headerSlot = useHeaderSlot();
+  const isMobile = useIsMobile();
 
-  const timeline = useMemo(() => {
+  const { sections, overdueCount, todayCount } = useMemo(() => {
     const items = reminders.map((r) => toTimelineItem(r, now)).sort((a, b) => a.when - b.when);
-    const { week, later } = splitAgenda(items);
-    return { weekGroups: groupByDay(week), laterGroups: groupByMonth(later) };
+    const { overdue, today, upcoming } = splitReminders(items, now);
+    const list: TimelineSection[] = [
+      {
+        key: "overdue",
+        label: "Atrasados",
+        items: overdue,
+        count: overdue.length,
+        tone: "danger",
+        actions: true,
+      },
+      { key: "today", label: "Hoje", items: today, caption: todayLabel(), actions: true },
+      { key: "upcoming", label: "Próximos dias", items: upcoming },
+    ];
+    return { sections: list, overdueCount: overdue.length, todayCount: today.length };
   }, [reminders, now]);
+
+  const openActions = (item: TimelineItem) => setSelected(byId.get(item.id) ?? null);
+
+  const complete = (item: TimelineItem) =>
+    acknowledge(item.id).catch((err) =>
+      alertApiError(err, "Não foi possível concluir o lembrete.")
+    );
+
+  const summary = (overdueCount > 0 || todayCount > 0) && (
+    <div className={styles.summary}>
+      {overdueCount > 0 && (
+        <span className={styles.overduePill}>
+          {overdueCount} atrasado{overdueCount === 1 ? "" : "s"}
+        </span>
+      )}
+      {todayCount > 0 && (
+        <span className={styles.summaryText}>{todayCount} para hoje</span>
+      )}
+    </div>
+  );
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <h2 className={styles.sectionTitle}>Esta semana</h2>
-      </header>
+      {headerSlot && summary && createPortal(summary, headerSlot)}
 
-      <PushBanner />
+      <div className={styles.list}>
+        <PushBanner />
 
-      {loading && <p className={styles.muted}>Carregando…</p>}
-      {error && <p className={styles.error}>{error}</p>}
+        {isMobile && !loading && !error && <WeekStrip reminders={reminders} />}
 
-      {!loading && !error && reminders.length === 0 && (
-        <div className={styles.empty}>
-          <p className={styles.emptyTitle}>Nada por aqui ainda</p>
-          <p className={styles.muted}>Crie seu primeiro lembrete e eu te aviso na hora.</p>
-          <Link to="/lembretes/novo" className={styles.emptyButton}>
-            + Novo lembrete
-          </Link>
-        </div>
-      )}
+        {loading && <p className={styles.muted}>Carregando…</p>}
+        {error && <p className={styles.error}>{error}</p>}
 
-      {!loading && !error && reminders.length > 0 && (
-        <Timeline
-          weekGroups={timeline.weekGroups}
-          laterGroups={timeline.laterGroups}
-          iconFor={iconForBell}
-          onItemClick={(item) => setSelected(byId.get(item.id) ?? null)}
-          onItemLongPress={(item) => navigate(`/lembretes/r/${item.id}`)}
-          emptyMessage="Nenhum lembrete ativo agendado."
-        />
-      )}
+        {!loading && !error && reminders.length === 0 && (
+          <div className={styles.empty}>
+            <p className={styles.emptyTitle}>Nada por aqui ainda</p>
+            <p className={styles.muted}>Crie seu primeiro lembrete e eu te aviso na hora.</p>
+            <Link to="/lembretes/novo" className={styles.emptyButton}>
+              + Novo lembrete
+            </Link>
+          </div>
+        )}
+
+        {!loading && !error && reminders.length > 0 && (
+          <Timeline
+            sections={sections}
+            onItemClick={openActions}
+            onItemLongPress={(item) => navigate(`/lembretes/r/${item.id}`)}
+            onSnooze={openActions}
+            onComplete={complete}
+            emptyMessage="Nenhum lembrete ativo agendado."
+          />
+        )}
+      </div>
+
+      <aside className={styles.rail}>
+        <RemindersRail reminders={reminders} now={now} />
+      </aside>
 
       {selectedReminder && (
         <ReminderActionsSheet

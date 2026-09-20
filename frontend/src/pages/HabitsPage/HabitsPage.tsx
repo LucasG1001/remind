@@ -1,19 +1,43 @@
 import { useCallback, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { useHabits } from "../../hooks/useHabits";
-import { SidePanel } from "../../components/SidePanel/SidePanel";
+import { useIsMobile } from "../../hooks/useIsMobile";
+import { usePeriodNav } from "../../hooks/usePeriodNav";
+import { useHeaderSlot } from "../../context/useHeaderSlot";
 import { HabitForm } from "../../components/HabitForm/HabitForm";
-import { TodayHeader } from "../../components/TodayHeader/TodayHeader";
-import { TodayHabitList } from "../../components/TodayHabitList/TodayHabitList";
+import { TodayColumn } from "../../components/TodayColumn/TodayColumn";
+import { HistoryPanel } from "../../components/HistoryPanel/HistoryPanel";
+import { getToday } from "../../utils/dateUtils";
 import { alertApiError, apiErrorMessage } from "../../utils/apiError";
 import type { Habit, HabitFormData } from "../../types/habit";
 import styles from "./HabitsPage.module.css";
 
-export function HabitsPage() {
-  const { habits, loading, error, createHabit, updateHabit, deleteHabit, reorderHabits, setCompletion } =
-    useHabits();
+type Tab = "today" | "checkins";
 
-  const [selected, setSelected] = useState<Habit | null>(null);
+const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
+
+export function HabitsPage() {
+  const {
+    habits,
+    loading,
+    error,
+    createHabit,
+    updateHabit,
+    deleteHabit,
+    reorderHabits,
+    setCompletion,
+  } = useHabits();
+
+  const isMobile = useIsMobile();
+  const headerSlot = useHeaderSlot();
+  const nav = usePeriodNav();
+
+  const [tab, setTab] = useState<Tab>("today");
   const [editing, setEditing] = useState<Habit | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -36,15 +60,10 @@ export function HabitsPage() {
     setSearchParams({}, { replace: true });
   }, [setSearchParams]);
 
-  // Mantém o painel sincronizado com o estado mais recente do hábito.
-  const selectedHabit = selected ? habits.find((h) => h.id === selected.id) ?? null : null;
-
   const handleSave = useCallback(
     (data: HabitFormData) => {
       const action =
-        formMode === "edit" && editing
-          ? updateHabit(editing.id, data)
-          : createHabit(data);
+        formMode === "edit" && editing ? updateHabit(editing.id, data) : createHabit(data);
       setFormError(null);
       action
         .then(closeForm)
@@ -56,7 +75,6 @@ export function HabitsPage() {
   const handleDelete = useCallback(
     (id: string) => {
       deleteHabit(id).catch((err) => alertApiError(err, "Não foi possível excluir o hábito."));
-      setSelected(null);
     },
     [deleteHabit]
   );
@@ -69,32 +87,81 @@ export function HabitsPage() {
     [setCompletion]
   );
 
+  const handleEdit = useCallback((habit: Habit) => {
+    setFormError(null);
+    setEditing(habit);
+  }, []);
+
   const handleReorder = useCallback(
-    (orderedPendingIds: string[]) => {
-      const pending = new Set(orderedPendingIds);
+    (orderedVisibleIds: string[]) => {
+      const visible = new Set(orderedVisibleIds);
       let vi = 0;
-      const fullOrder = habits.map((h) => (pending.has(h.id) ? orderedPendingIds[vi++]! : h.id));
+      const fullOrder = habits.map((h) => (visible.has(h.id) ? orderedVisibleIds[vi++]! : h.id));
       reorderHabits(fullOrder).catch(() => undefined);
     },
     [habits, reorderHabits]
   );
 
+  const dateLabel = dateFormatter.format(getToday()).replace("-feira", "");
+
+  const tabs = (
+    <div className={styles.tabs} role="tablist">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={tab === "today"}
+        className={`${styles.tab} ${tab === "today" ? styles.tabActive : ""}`}
+        onClick={() => setTab("today")}
+      >
+        Hoje
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={tab === "checkins"}
+        className={`${styles.tab} ${tab === "checkins" ? styles.tabActive : ""}`}
+        onClick={() => setTab("checkins")}
+      >
+        Check-ins
+      </button>
+    </div>
+  );
+
+  const today = (
+    <TodayColumn
+      habits={habits}
+      onToggle={handleToggle}
+      onEdit={handleEdit}
+      onReorder={handleReorder}
+    />
+  );
+
   return (
     <div className={styles.page}>
+      {isMobile && headerSlot && habits.length > 0 && createPortal(tabs, headerSlot)}
+
       {loading && <p className={styles.muted}>Carregando…</p>}
       {error && <p className={styles.error}>{error}</p>}
 
-      {!loading && !error && habits.length > 0 && (
-        <>
-          <TodayHeader habits={habits} />
-          <TodayHabitList
-            habits={habits}
-            onToggle={handleToggle}
-            onOpen={setSelected}
-            onReorder={handleReorder}
-          />
-        </>
-      )}
+      {!loading &&
+        !error &&
+        habits.length > 0 &&
+        (isMobile ? (
+          tab === "today" ? (
+            <div className={styles.today}>{today}</div>
+          ) : (
+            <div className={styles.history}>
+              <HistoryPanel habits={habits} nav={nav} variant="mobile" dateLabel={dateLabel} />
+            </div>
+          )
+        ) : (
+          <>
+            <div className={styles.today}>{today}</div>
+            <div className={styles.history}>
+              <HistoryPanel habits={habits} nav={nav} variant="desktop" dateLabel={dateLabel} />
+            </div>
+          </>
+        ))}
 
       {!loading && !error && habits.length === 0 && (
         <div className={styles.empty}>
@@ -104,19 +171,6 @@ export function HabitsPage() {
             + Novo hábito
           </button>
         </div>
-      )}
-
-      {selectedHabit && (
-        <SidePanel
-          habit={selectedHabit}
-          onClose={() => setSelected(null)}
-          onEdit={(habit) => {
-            setSelected(null);
-            setEditing(habit);
-          }}
-          onDelete={handleDelete}
-          onSetCount={handleToggle}
-        />
       )}
 
       {formMode && (

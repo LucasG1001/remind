@@ -8,8 +8,8 @@ import {
   setHabitCompletion,
 } from "../services/habitService";
 import { useFetchList } from "./useFetchList";
-import { calculateCurrentStreak, calculateLongestStreak } from "../utils/streakUtils";
-import { calculateLevel } from "../utils/levelUtils";
+import { calculateCurrentStreak } from "../utils/streakUtils";
+import { calculateLevelProgress } from "../utils/levelUtils";
 
 interface UseHabitsReturn {
   habits: Habit[];
@@ -24,9 +24,12 @@ interface UseHabitsReturn {
 
 function recalculateHabitStats(habit: Habit): Habit {
   const currentStreak = calculateCurrentStreak(habit.completions, habit.selectedDays);
-  const longestStreak = calculateLongestStreak(habit.completions, habit.selectedDays, habit.createdAt);
-  const level = calculateLevel(longestStreak, habit.completions, habit.selectedDays);
-  return { ...habit, currentStreak, longestStreak, level };
+  const { level, progress } = calculateLevelProgress(
+    habit.completions,
+    habit.selectedDays,
+    habit.createdAt
+  );
+  return { ...habit, currentStreak, level, levelProgress: progress };
 }
 
 function applyCount(habit: Habit, date: string, count: number): Habit {

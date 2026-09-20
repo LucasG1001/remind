@@ -15,7 +15,7 @@ export interface Habit {
   targetCount: number;
   completions: HabitCompletion[];
   currentStreak: number;
-  longestStreak: number;
+  levelProgress: number;
   level: number;
   position: number;
   createdAt: string;

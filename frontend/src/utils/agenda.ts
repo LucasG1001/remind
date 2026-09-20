@@ -1,4 +1,3 @@
-import { MONTH_PT } from "./month";
 import { diffDaysFromToday, getToday, spCalendarDay, spDateKey } from "./dateUtils";
 import { WEEKDAY_ABBR_PT } from "./weekdays";
 
@@ -11,6 +10,7 @@ export interface TimelineItem {
   hasTime: boolean;
   subtitle?: string;
   subtitleTone?: "danger";
+  tone?: "danger" | "today";
   done?: boolean;
 }
 
@@ -20,24 +20,39 @@ export interface TimelineGroup {
   items: TimelineItem[];
 }
 
+export interface TimelineSection {
+  key: string;
+  label: string;
+  items: TimelineItem[];
+  count?: number;
+  caption?: string;
+  tone?: "danger";
+  actions?: boolean;
+}
+
 export function startOfToday(): number {
   return getToday().getTime();
 }
 
-export function splitAgenda(items: TimelineItem[]): { week: TimelineItem[]; later: TimelineItem[] } {
-  const limit = startOfToday() + 7 * 24 * 60 * 60 * 1000;
-  const week: TimelineItem[] = [];
-  const later: TimelineItem[] = [];
+export function splitReminders(
+  items: TimelineItem[],
+  nowMs: number
+): { overdue: TimelineItem[]; today: TimelineItem[]; upcoming: TimelineItem[] } {
+  const overdue: TimelineItem[] = [];
+  const today: TimelineItem[] = [];
+  const upcoming: TimelineItem[] = [];
   for (const item of items) {
-    if (item.when < limit) week.push(item);
-    else later.push(item);
+    const diff = diffDaysFromToday(item.when, nowMs);
+    if (diff < 0) overdue.push(item);
+    else if (diff === 0) today.push(item);
+    else upcoming.push(item);
   }
-  return { week, later };
+  return { overdue, today, upcoming };
 }
 
 function dayLabel(when: number): string {
   const diff = diffDaysFromToday(when, Date.now());
-  if (diff <= 0) return "Hoje";
+  if (diff === 0) return "Hoje";
   if (diff === 1) return "Amanhã";
   const d = spCalendarDay(new Date(when));
   return `${WEEKDAY_ABBR_PT[d.getDay()]} ${d.getDate()}`;
@@ -58,28 +73,6 @@ export function groupByDay(items: TimelineItem[]): TimelineGroup[] {
   }));
 }
 
-export function groupByMonth(items: TimelineItem[]): TimelineGroup[] {
-  const currentYear = spCalendarDay(new Date()).getFullYear();
-  const map = new Map<string, TimelineItem[]>();
-  for (const item of items) {
-    const d = spCalendarDay(new Date(item.when));
-    const key = `${d.getFullYear()}-${d.getMonth()}`;
-    const list = map.get(key);
-    if (list) list.push(item);
-    else map.set(key, [item]);
-  }
-  return Array.from(map.entries()).map(([key, list]) => {
-    const d = spCalendarDay(new Date(list[0]!.when));
-    const month = MONTH_PT[d.getMonth()];
-    const year = d.getFullYear();
-    return {
-      key,
-      label: year === currentYear ? month! : `${month} ${year}`,
-      items: list,
-    };
-  });
-}
-
 export function groupRemindersByDay<T extends { eventAt: string }>(reminders: T[]): Map<string, T[]> {
   const map = new Map<string, T[]>();
   for (const reminder of reminders) {
@@ -95,6 +88,22 @@ export function groupRemindersByDay<T extends { eventAt: string }>(reminders: T[
 }
 
 const TZ = "America/Sao_Paulo";
+
+/** Coluna de data da linha de lembrete: "dom 19/7". */
+export function dayCellLabel(when: number): string {
+  const d = spCalendarDay(new Date(when));
+  return `${WEEKDAY_ABBR_PT[d.getDay()]!.toLowerCase()} ${d.getDate()}/${d.getMonth() + 1}`;
+}
+
+/** Data de hoje por extenso: "domingo, 20 de setembro". */
+export function todayLabel(): string {
+  return new Date().toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    timeZone: TZ,
+  });
+}
 
 export function itemTime(item: TimelineItem, withDate: boolean): string {
   const d = new Date(item.when);
