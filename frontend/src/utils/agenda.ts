@@ -1,5 +1,6 @@
 import { diffDaysFromToday, getToday, spCalendarDay, spDateKey } from "./dateUtils";
 import { WEEKDAY_ABBR_PT } from "./weekdays";
+import { MONTH_PT } from "./month";
 
 export interface TimelineItem {
   id: string;
@@ -71,6 +72,33 @@ export function groupByDay(items: TimelineItem[]): TimelineGroup[] {
     label: dayLabel(list[0]!.when),
     items: list,
   }));
+}
+
+/**
+ * Um bloco por mês, na ordem em que os itens chegam — a lista já vem ordenada
+ * por `when`. O ano só entra no rótulo quando não é o corrente.
+ */
+export function groupByMonth(items: TimelineItem[], nowMs: number): TimelineSection[] {
+  const currentYear = spCalendarDay(new Date(nowMs)).getFullYear();
+  const map = new Map<string, TimelineItem[]>();
+  for (const item of items) {
+    const d = spCalendarDay(new Date(item.when));
+    const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, "0")}`;
+    const list = map.get(key);
+    if (list) list.push(item);
+    else map.set(key, [item]);
+  }
+  return Array.from(map.entries()).map(([key, list]) => {
+    const d = spCalendarDay(new Date(list[0]!.when));
+    const month = MONTH_PT[d.getMonth()]!;
+    const year = d.getFullYear();
+    return {
+      key: `month-${key}`,
+      label: year === currentYear ? month : `${month} de ${year}`,
+      items: list,
+      count: list.length,
+    };
+  });
 }
 
 export function groupRemindersByDay<T extends { eventAt: string }>(reminders: T[]): Map<string, T[]> {

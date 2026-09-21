@@ -8,12 +8,13 @@ import { Timeline } from "../../components/Timeline/Timeline";
 import { RemindersRail } from "../../components/RemindersRail/RemindersRail";
 import { WeekStrip } from "../../components/WeekStrip/WeekStrip";
 import {
+  groupByMonth,
   splitReminders,
   todayLabel,
   type TimelineItem,
   type TimelineSection,
 } from "../../utils/agenda";
-import { recurrenceLabel, shortOverdueLabel } from "../../utils/format";
+import { dayRemainingLabel, recurrenceLabel, shortOverdueLabel } from "../../utils/format";
 import { diffDaysFromToday } from "../../utils/dateUtils";
 import { alertApiError } from "../../utils/apiError";
 import { useHeaderSlot } from "../../context/useHeaderSlot";
@@ -25,6 +26,9 @@ import styles from "./RemindersPage.module.css";
 function toTimelineItem(reminder: Reminder, now: number): TimelineItem {
   const when = Date.parse(reminder.eventAt);
   const diff = diffDaysFromToday(when, now);
+  // Hoje fica sem contagem: o cabeçalho da seção já diz "Hoje" com a data.
+  const countdown =
+    diff < 0 ? shortOverdueLabel(when, now) : diff > 0 ? dayRemainingLabel(when, now).text : undefined;
   return {
     id: reminder.id,
     kind: "reminder",
@@ -32,7 +36,7 @@ function toTimelineItem(reminder: Reminder, now: number): TimelineItem {
     when,
     detail: recurrenceLabel(reminder) ?? "",
     hasTime: !reminder.isAllDay,
-    subtitle: diff < 0 ? shortOverdueLabel(when, now) : undefined,
+    subtitle: countdown,
     subtitleTone: diff < 0 ? "danger" : undefined,
     tone: diff < 0 ? "danger" : diff === 0 ? "today" : undefined,
   };
@@ -65,7 +69,7 @@ export function RemindersPage() {
         actions: true,
       },
       { key: "today", label: "Hoje", items: today, caption: todayLabel(), actions: true },
-      { key: "upcoming", label: "Próximos dias", items: upcoming },
+      ...groupByMonth(upcoming, now),
     ];
     return { sections: list, overdueCount: overdue.length, todayCount: today.length };
   }, [reminders, now]);
