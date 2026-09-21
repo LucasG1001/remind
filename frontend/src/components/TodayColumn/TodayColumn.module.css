@@ -63,3 +63,41 @@
   font-size: var(--font-size-base);
   color: var(--color-text-secondary);
 }
+
+/* top/left 0 faz translate(clientX, clientY) mapear direto para a viewport.
+   pointer-events none é obrigatório: o arraste usa elementFromPoint sob o
+   cursor e acertaria o próprio fantasma. */
+.ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 500;
+  pointer-events: none;
+  will-change: transform;
+  opacity: 0.92;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.ghostIcon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--color-text-accent);
+}
+
+.ghostName {
+  min-width: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

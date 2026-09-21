@@ -7,7 +7,10 @@
   border-radius: var(--radius-md);
   background: var(--color-bg-card);
   box-shadow: var(--shadow-sm);
+  /* pan-y deixa a rolagem passar; o arraste é o toque longo. user-select evita
+     a seleção de texto que o toque longo dispararia. */
   touch-action: pan-y;
+  user-select: none;
 }
 
 /* Alvo de clique do card inteiro; o conteúdo por cima não intercepta ponteiro. */
@@ -51,7 +54,8 @@
   color: var(--color-text-secondary);
   transition: background var(--transition-fast), border-color var(--transition-fast),
     color var(--transition-fast), transform var(--transition-fast);
-  touch-action: none;
+  /* Não é mais alça de arraste: deslizar a partir dele rola a lista. */
+  touch-action: pan-y;
 }
 
 .check:hover {
@@ -168,8 +172,15 @@
   color: var(--color-text-secondary);
 }
 
+/* Quem segue o ponteiro é o fantasma da TodayColumn: o card de origem vira o
+   slot vazio que anda pela lista. visibility mantém a altura. */
 .dragging {
-  transform: scale(1.02);
-  box-shadow: var(--shadow-md);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-accent-line);
   cursor: grabbing;
+}
+
+.dragging .row,
+.dragging .strip {
+  visibility: hidden;
 }
