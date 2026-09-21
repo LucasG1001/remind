@@ -1,10 +1,12 @@
-import { createElement, type PointerEvent as ReactPointerEvent } from "react";
+import { createElement, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { Habit } from "../../types/habit";
 import { getIcon } from "../../utils/iconLibrary";
 import { getLevelColor } from "../../utils/levelUtils";
-import { streakLabel } from "../../utils/streakUtils";
 import { LevelStrip } from "../LevelStrip/LevelStrip";
 import styles from "./TodayHabitCard.module.css";
+
+// Acima disto a fileira deixa de ler como checks discretos (a meta vai até 50).
+const MAX_SEGMENTS = 12;
 
 interface TodayHabitCardProps {
   habit: Habit;
@@ -33,8 +35,7 @@ export function TodayHabitCard({
   onPointerUp,
   onPointerCancel,
 }: TodayHabitCardProps) {
-  const caption =
-    target > 1 && !completed ? `${count}/${target} hoje` : streakLabel(habit.currentStreak);
+  const partial = count > 0 && !completed;
 
   return (
     <li
@@ -58,7 +59,7 @@ export function TodayHabitCard({
         <button
           type="button"
           data-role="habit-check"
-          className={styles.check}
+          className={`${styles.check} ${partial ? styles.checkPartial : ""}`}
           aria-pressed={completed}
           aria-label={target > 1 ? `${habit.name} — ${count} de ${target}` : habit.name}
           onPointerUp={onToggle}
@@ -68,7 +69,34 @@ export function TodayHabitCard({
 
         <span className={styles.text}>
           <span className={styles.name}>{habit.name}</span>
-          <span className={styles.caption}>{caption}</span>
+          {/* O aria-label do botão já anuncia "N de M": a faixa é só visual. */}
+          {target > 1 && (
+            <span className={styles.caption}>
+              {target <= MAX_SEGMENTS ? (
+                <span
+                  className={styles.dayStrip}
+                  style={{ "--checks": target } as CSSProperties}
+                  aria-hidden="true"
+                >
+                  {Array.from({ length: target }, (_, i) => (
+                    <span
+                      key={i}
+                      className={`${styles.dayCell} ${
+                        i < count ? styles.dayFilled : i === count ? styles.dayNext : ""
+                      }`}
+                    />
+                  ))}
+                </span>
+              ) : (
+                <span className={styles.dayBar} aria-hidden="true">
+                  <span
+                    className={styles.dayBarFill}
+                    style={{ width: `${(count / target) * 100}%` }}
+                  />
+                </span>
+              )}
+            </span>
+          )}
         </span>
 
         <span className={styles.level} style={{ color: getLevelColor(habit.level) }}>
