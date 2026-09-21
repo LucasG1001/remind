@@ -23,6 +23,10 @@
   width: 100%;
 }
 
+/* Só reserva espaço para a bottom-nav em páginas de altura travada (Projetos):
+   como .layout tem altura fixa, esta padding fica acima do overflow e não entra
+   na área rolável. Página que transborda usa --mobile-nav-clearance no próprio
+   .page. */
 @media (max-width: 768px) {
   .layout {
     padding-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));

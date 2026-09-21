@@ -128,6 +128,11 @@
 
   --topbar-height: 62px;
   --mobile-nav-height: 64px;
+  /* Páginas que rolam o documento precisam reservar esta folga elas mesmas: a
+     padding-bottom de .layout fica acima da região de overflow. */
+  --mobile-nav-clearance: calc(
+    var(--mobile-nav-height) + env(safe-area-inset-bottom) + var(--spacing-base)
+  );
   --content-max: 1400px;
 
   --streak-color: var(--color-accent);

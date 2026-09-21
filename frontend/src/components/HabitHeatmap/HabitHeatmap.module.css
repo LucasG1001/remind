@@ -41,7 +41,7 @@
 .monthWrapper {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 3px;
 }
 
@@ -72,7 +72,7 @@
   grid-auto-flow: column;
   grid-template-rows: repeat(7, 6px);
   grid-auto-columns: minmax(0, 1fr);
-  gap: 1.5px;
+  gap: 1px;
 }
 
 .year .cell,
@@ -128,8 +128,10 @@
   box-shadow: none;
 }
 
+/* Sem contorno no ano, um futuro transparente desapareceria: o ano precisa
+   mostrar os 365 quadradinhos, então usa o mesmo tom de "não agendado". */
 .year .future {
-  background: transparent;
+  background: var(--color-bg-secondary);
   box-shadow: none;
 }
 

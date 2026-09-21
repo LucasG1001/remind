@@ -35,6 +35,7 @@
 @media (max-width: 768px) {
   .page {
     padding: var(--spacing-base);
+    padding-bottom: var(--mobile-nav-clearance);
   }
 
   .list {

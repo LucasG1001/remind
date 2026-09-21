@@ -71,12 +71,18 @@ export function useProjects() {
     };
   }, [currentProjectId]);
 
-  const selectProject = useCallback((id: string) => {
-    localStorage.setItem(PROJECT_STORAGE_KEY, id);
-    setBoard(null);
-    setTags([]);
-    setCurrentProjectId(id);
-  }, []);
+  const selectProject = useCallback(
+    (id: string) => {
+      // Sem isto, reescolher o projeto atual zera o board e o efeito não
+      // refaz o fetch (mesmo currentProjectId), travando em "Carregando...".
+      if (id === currentProjectId) return;
+      localStorage.setItem(PROJECT_STORAGE_KEY, id);
+      setBoard(null);
+      setTags([]);
+      setCurrentProjectId(id);
+    },
+    [currentProjectId]
+  );
 
   const createProject = useCallback(async (name: string) => {
     const created = await apiCreateProject(name);
