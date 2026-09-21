@@ -14,3 +14,10 @@ export class CompletionLockedError extends DomainError {
     this.name = "CompletionLockedError";
   }
 }
+
+export class ReminderLimitError extends DomainError {
+  constructor(limit: number) {
+    super(`Este hábito só pode ter ${limit} horário${limit === 1 ? "" : "s"} de aviso.`, 409);
+    this.name = "ReminderLimitError";
+  }
+}

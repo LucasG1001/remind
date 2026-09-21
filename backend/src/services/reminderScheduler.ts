@@ -2,6 +2,7 @@ import * as reminderModel from "../models/reminderModel.js";
 import { addMinutes } from "../lib/dateUtils.js";
 import { decide } from "./reminderStateMachine.js";
 import { sendPush } from "./pushService.js";
+import { processHabitsDue } from "./habitScheduler.js";
 
 const TICK_MS = 60 * 1000;
 const BATCH_LIMIT = 100;
@@ -46,7 +47,10 @@ export async function processDue(now: Date = new Date()): Promise<void> {
 function tick(): void {
   if (inFlight) return;
   inFlight = true;
+  // Hábitos entram no mesmo tick de propósito: dois setInterval independentes se
+  // sobrepõem e disputam o pool do pg, e a guarda inFlight é por módulo.
   processDue()
+    .then(() => processHabitsDue())
     .catch((error) => console.error("[scheduler] tick falhou:", error))
     .finally(() => {
       inFlight = false;

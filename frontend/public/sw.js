@@ -6,10 +6,16 @@ const BADGE = "/badge-96.png";
 const DEFAULT_URL = "/lembretes";
 
 // O Chrome no Android renderiza no máximo 2 botões (Notification.maxActions).
-const ACTIONS = [
-  { action: "snooze-15", title: "Soneca 15 min" },
-  { action: "done", title: "Concluir" },
-];
+const ACTIONS = {
+  reminder: [
+    { action: "snooze-15", title: "Soneca 15 min" },
+    { action: "done", title: "Concluir" },
+  ],
+  habit: [
+    { action: "habit-skip", title: "Pular" },
+    { action: "habit-done", title: "Concluir" },
+  ],
+};
 
 const FALLBACK = {
   title: "RemindMe",
@@ -56,31 +62,59 @@ async function openApp(url) {
 
 // O service worker mudou o estado no servidor; sem este aviso a página aberta
 // continuaria mostrando a lista antiga até um reload manual.
-async function notifyClients(reminderId, action) {
+async function notifyClients(message) {
   const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
   for (const client of windows) {
-    client.postMessage({ type: "reminder-updated", reminderId, action });
+    client.postMessage(message);
   }
 }
 
-async function handleAction(action, data) {
-  const reminderId = data.reminderId;
-  const tag = reminderId ?? "remindme";
+async function handleHabitAction(action, habit, tag) {
+  if (action === "habit-skip") {
+    await postJson(`/api/habits/reminders/${habit.slotId}/skip`, { skipped: true, date: habit.date });
+    await notifyClients({ type: "habit-updated", habitId: habit.habitId, action });
+    await notify("🔕 Aviso desligado", "Não insisto mais neste horário hoje.", tag);
+    return;
+  }
+  // Idempotente no servidor: o push vai para todos os aparelhos, e esta
+  // notificação pode ser tocada duas vezes ou minutos depois do check no app.
+  await postJson(`/api/habits/${habit.habitId}/reminders/complete`, {
+    slotIndex: habit.slotIndex,
+    date: habit.date,
+  });
+  await notifyClients({ type: "habit-updated", habitId: habit.habitId, action });
+  await notify("✅ Check registrado", "Mandou bem. 🙂", tag);
+}
 
-  if (!reminderId) {
+async function handleAction(action, data) {
+  const { kind, reminderId, habit } = data;
+  const tag = kind === "habit" ? `habit:${habit?.habitId}` : reminderId ?? "remindme";
+
+  if (kind !== "habit" && !reminderId) {
     await notify("✅ Botão funcionando", "Era um push de teste — nada foi alterado.", tag);
     return;
   }
 
   try {
-    if (action === "snooze-15") {
-      await postJson(`/api/reminders/${reminderId}/snooze`, { minutes: 15 });
-      await notifyClients(reminderId, action);
-      await notify("😴 Soneca de 15 minutos", "Te aviso de novo em 15 min — o compromisso segue no mesmo horário.", tag);
-    } else {
-      await postJson(`/api/reminders/${reminderId}/acknowledge`);
-      await notifyClients(reminderId, action);
-      await notify("✅ Concluído", "Lembrete marcado como concluído.", tag);
+    if (kind === "habit") {
+      await handleHabitAction(action, habit, tag);
+      return;
+    }
+    // switch explícito: um `else` catch-all faria qualquer ação desconhecida
+    // concluir o lembrete.
+    switch (action) {
+      case "snooze-15":
+        await postJson(`/api/reminders/${reminderId}/snooze`, { minutes: 15 });
+        await notifyClients({ type: "reminder-updated", reminderId, action });
+        await notify("😴 Soneca de 15 minutos", "Te aviso de novo em 15 min — o compromisso segue no mesmo horário.", tag);
+        break;
+      case "done":
+        await postJson(`/api/reminders/${reminderId}/acknowledge`);
+        await notifyClients({ type: "reminder-updated", reminderId, action });
+        await notify("✅ Concluído", "Lembrete marcado como concluído.", tag);
+        break;
+      default:
+        break;
     }
   } catch {
     await notify("⚠️ Não deu para salvar", "Sem conexão com o RemindMe. Abra o app para concluir ou adiar.", tag);
@@ -91,17 +125,26 @@ async function handleAction(action, data) {
 // isso o Android mostra "site atualizado em segundo plano" e pode cassar a permissão.
 self.addEventListener("push", (event) => {
   const payload = readPayload(event);
+  const kind = payload.kind === "habit" ? "habit" : "reminder";
+  // tag por entidade: os avisos insistentes substituem o anterior em vez de
+  // empilhar, e um hábito nunca colapsa em cima de outro.
+  const tag =
+    kind === "habit" ? `habit:${payload.habit?.habitId}` : payload.reminderId ?? "remindme";
   event.waitUntil(
     self.registration.showNotification(payload.title, {
       body: payload.description,
       icon: ICON,
       badge: BADGE,
-      // tag = lembrete: os avisos insistentes substituem o anterior em vez de empilhar.
-      tag: payload.reminderId ?? "remindme",
+      tag,
       renotify: true,
       vibrate: [200, 100, 200],
-      actions: ACTIONS,
-      data: { reminderId: payload.reminderId ?? null, url: payload.url ?? DEFAULT_URL },
+      actions: ACTIONS[kind],
+      data: {
+        kind,
+        reminderId: payload.reminderId ?? null,
+        habit: payload.habit ?? null,
+        url: payload.url ?? DEFAULT_URL,
+      },
     })
   );
 });

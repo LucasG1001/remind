@@ -8,7 +8,7 @@ import { useHeaderSlot } from "../../context/useHeaderSlot";
 import { HabitForm } from "../../components/HabitForm/HabitForm";
 import { TodayColumn } from "../../components/TodayColumn/TodayColumn";
 import { HistoryPanel } from "../../components/HistoryPanel/HistoryPanel";
-import { getToday } from "../../utils/dateUtils";
+import { getToday, getTodayKey } from "../../utils/dateUtils";
 import { alertApiError, apiErrorMessage } from "../../utils/apiError";
 import type { Habit, HabitFormData } from "../../types/habit";
 import styles from "./HabitsPage.module.css";
@@ -31,6 +31,9 @@ export function HabitsPage() {
     deleteHabit,
     reorderHabits,
     setCompletion,
+    addReminder,
+    removeReminder,
+    skipReminder,
   } = useHabits();
 
   const isMobile = useIsMobile();
@@ -38,7 +41,10 @@ export function HabitsPage() {
   const nav = usePeriodNav();
 
   const [tab, setTab] = useState<Tab>("today");
-  const [editing, setEditing] = useState<Habit | null>(null);
+  // Guarda o id, não o objeto: adicionar um horário atualiza `habits`, e um
+  // retrato congelado deixaria a lista do formulário para trás.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editing = editingId ? habits.find((h) => h.id === editingId) ?? null : null;
   const [formError, setFormError] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -49,27 +55,32 @@ export function HabitsPage() {
       : null;
 
   const openCreate = useCallback(() => {
-    setEditing(null);
+    setEditingId(null);
     setFormError(null);
     setSearchParams({ novo: "1" });
   }, [setSearchParams]);
 
   const closeForm = useCallback(() => {
-    setEditing(null);
+    setEditingId(null);
     setFormError(null);
     setSearchParams({}, { replace: true });
   }, [setSearchParams]);
 
   const handleSave = useCallback(
-    (data: HabitFormData) => {
-      const action =
-        formMode === "edit" && editing ? updateHabit(editing.id, data) : createHabit(data);
+    (data: HabitFormData, pendingTimes: string[]) => {
       setFormError(null);
+      const action =
+        formMode === "edit" && editing
+          ? updateHabit(editing.id, data)
+          : // Horários são sub-recurso: só dá para gravar depois que o hábito existe.
+            createHabit(data).then(async (created) => {
+              for (const time of pendingTimes) await addReminder(created.id, time);
+            });
       action
         .then(closeForm)
         .catch((err) => setFormError(apiErrorMessage(err, "Não foi possível salvar o hábito.")));
     },
-    [formMode, editing, updateHabit, createHabit, closeForm]
+    [formMode, editing, updateHabit, createHabit, addReminder, closeForm]
   );
 
   const handleDelete = useCallback(
@@ -87,9 +98,33 @@ export function HabitsPage() {
     [setCompletion]
   );
 
+  const handleAddReminder = useCallback(
+    (habitId: string, time: string) =>
+      addReminder(habitId, time).catch((err) =>
+        setFormError(apiErrorMessage(err, "Não foi possível adicionar o horário."))
+      ),
+    [addReminder]
+  );
+
+  const handleRemoveReminder = useCallback(
+    (reminderId: string) =>
+      removeReminder(reminderId).catch((err) =>
+        setFormError(apiErrorMessage(err, "Não foi possível remover o horário."))
+      ),
+    [removeReminder]
+  );
+
+  const handleSkipReminder = useCallback(
+    (_habit: Habit, reminderId: string, skipped: boolean) =>
+      skipReminder(reminderId, getTodayKey(), skipped).catch((err) =>
+        alertApiError(err, "Não foi possível alterar o aviso.")
+      ),
+    [skipReminder]
+  );
+
   const handleEdit = useCallback((habit: Habit) => {
     setFormError(null);
-    setEditing(habit);
+    setEditingId(habit.id);
   }, []);
 
   const handleReorder = useCallback(
@@ -131,6 +166,7 @@ export function HabitsPage() {
     <TodayColumn
       habits={habits}
       onToggle={handleToggle}
+      onSkipReminder={handleSkipReminder}
       onEdit={handleEdit}
       onReorder={handleReorder}
     />
@@ -186,6 +222,10 @@ export function HabitsPage() {
                 }
               : undefined
           }
+          reminders={editing?.reminders ?? []}
+          habitId={editing?.id ?? null}
+          onAddReminder={handleAddReminder}
+          onRemoveReminder={handleRemoveReminder}
           error={formError}
           onSave={handleSave}
           onClose={closeForm}

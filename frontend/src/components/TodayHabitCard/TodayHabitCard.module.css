@@ -184,3 +184,37 @@
 .dragging .strip {
   visibility: hidden;
 }
+
+/* pointer-events auto é obrigatório: .row é none e o overlay de editar,
+   que cobre o card inteiro, engoliria o toque. */
+.sideButton {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  transition: background var(--transition-fast), color var(--transition-fast);
+  touch-action: pan-y;
+}
+
+.sideButton:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-accent);
+}
+
+.sideButton:active {
+  transform: scale(0.94);
+}
+
+.sideButtonOff {
+  color: var(--color-accent);
+}
+
+.sideIcon {
+  width: 17px;
+  height: 17px;
+}

@@ -7,6 +7,15 @@ export interface HabitCompletion {
   locked?: boolean;
 }
 
+export interface HabitReminder {
+  id: string;
+  time: string;
+  index: number;
+  /** Acima da meta: fica salvo mas não notifica. */
+  active: boolean;
+  skippedToday: boolean;
+}
+
 export interface Habit {
   id: string;
   name: string;
@@ -14,6 +23,9 @@ export interface Habit {
   selectedDays: DayOfWeek[];
   targetCount: number;
   completions: HabitCompletion[];
+  reminders: HabitReminder[];
+  /** Resolvido no servidor: o horário que o botão de sino desliga. */
+  nextReminderId: string | null;
   currentStreak: number;
   levelProgress: number;
   level: number;

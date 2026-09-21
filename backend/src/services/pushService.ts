@@ -5,7 +5,16 @@ import * as pushSubscriptionModel from "../models/pushSubscriptionModel.js";
 export interface PushPayload {
   title: string;
   description: string;
+  /**
+   * Só lembretes preenchem `reminderId`. Um aparelho com o service worker antigo
+   * em cache cai no ramo de push de teste quando ele falta, em vez de postar em
+   * /api/reminders/<id> — é o contrato de compatibilidade dos avisos de hábito.
+   */
   reminderId?: string;
+  kind?: "reminder" | "habit";
+  /** Chave de coalescência na fila do serviço de push; vira o header `topic`. */
+  collapseKey?: string;
+  habit?: { habitId: string; slotId: string; slotIndex: number; date: string };
   url?: string;
 }
 
@@ -59,7 +68,11 @@ export async function sendPush(payload: PushPayload): Promise<number> {
     urgency: "high",
     // Coalesce na fila do serviço de push: um aviso não entregue do mesmo
     // lembrete é substituído pelo seguinte. O limite do header é 32 chars.
-    ...(payload.reminderId ? { topic: payload.reminderId.replace(/-/g, "") } : {}),
+    ...(() => {
+      // O header aceita no máximo 32 chars e um UUID sem traços tem exatamente 32.
+      const key = payload.collapseKey ?? payload.reminderId;
+      return key ? { topic: key.replace(/-/g, "").slice(0, 32) } : {};
+    })(),
   };
 
   const results = await Promise.allSettled(

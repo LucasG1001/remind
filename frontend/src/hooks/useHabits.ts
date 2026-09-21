@@ -1,5 +1,9 @@
+import { useEffect } from "react";
 import type { Habit, HabitFormData } from "../types/habit";
 import {
+  addHabitReminder,
+  removeHabitReminder,
+  skipHabitReminder,
   fetchHabits,
   createHabit as apiCreateHabit,
   updateHabit as apiUpdateHabit,
@@ -15,11 +19,15 @@ interface UseHabitsReturn {
   habits: Habit[];
   loading: boolean;
   error: string | null;
-  createHabit: (data: HabitFormData) => Promise<void>;
+  createHabit: (data: HabitFormData) => Promise<Habit>;
   updateHabit: (id: string, data: HabitFormData) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
   reorderHabits: (orderedIds: string[]) => Promise<void>;
   setCompletion: (habitId: string, date: string, count: number) => Promise<void>;
+  addReminder: (habitId: string, time: string) => Promise<void>;
+  removeReminder: (reminderId: string) => Promise<void>;
+  skipReminder: (reminderId: string, date: string, skipped: boolean) => Promise<void>;
+  reload: () => void;
 }
 
 function recalculateHabitStats(habit: Habit): Habit {
@@ -48,14 +56,16 @@ export function useHabits(): UseHabitsReturn {
     setItems: setHabits,
     loading,
     error,
+    reload,
   } = useFetchList<Habit>(
     () => fetchHabits().then((data) => data.map(recalculateHabitStats)),
     "Não foi possível carregar os hábitos."
   );
 
-  async function createHabit(data: HabitFormData): Promise<void> {
+  async function createHabit(data: HabitFormData): Promise<Habit> {
     const created = await apiCreateHabit(data);
     setHabits((prev) => [...prev, recalculateHabitStats(created)]);
+    return created;
   }
 
   async function updateHabit(id: string, data: HabitFormData): Promise<void> {
@@ -99,6 +109,33 @@ export function useHabits(): UseHabitsReturn {
     }
   }
 
+  // Os botões da notificação agem fora do React: o service worker avisa as
+  // janelas abertas para a coluna de Hoje não ficar velha.
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type === "habit-updated") reload();
+    };
+    navigator.serviceWorker.addEventListener("message", onMessage);
+    return () => navigator.serviceWorker.removeEventListener("message", onMessage);
+  }, [reload]);
+
+  function replace(updated: Habit): void {
+    setHabits((prev) => prev.map((h) => (h.id === updated.id ? recalculateHabitStats(updated) : h)));
+  }
+
+  async function addReminder(habitId: string, time: string): Promise<void> {
+    replace(await addHabitReminder(habitId, time));
+  }
+
+  async function removeReminder(reminderId: string): Promise<void> {
+    replace(await removeHabitReminder(reminderId));
+  }
+
+  async function skipReminder(reminderId: string, date: string, skipped: boolean): Promise<void> {
+    replace(await skipHabitReminder(reminderId, date, skipped));
+  }
+
   return {
     habits,
     loading,
@@ -108,5 +145,9 @@ export function useHabits(): UseHabitsReturn {
     deleteHabit,
     reorderHabits,
     setCompletion,
+    addReminder,
+    removeReminder,
+    skipReminder,
+    reload,
   };
 }

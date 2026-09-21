@@ -45,6 +45,16 @@ export function spDateAtTime(base: Date, dayDelta: number, hour: number, minute:
   return fromSpParts(p.year, p.month, p.day + dayDelta, hour, minute);
 }
 
+/**
+ * Chave "YYYY-MM-DD" do dia-calendário de SP. É a chave de `habit_completions.date`
+ * e do runtime dos avisos de hábito — no caminho da notificação quem manda é o
+ * servidor, para não divergir de um aparelho em outro fuso.
+ */
+export function spDateKey(date: Date): string {
+  const p = toSpParts(date);
+  return `${p.year}-${String(p.month + 1).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
+}
+
 /** Parse de "YYYY-MM-DD" + "HH:MM" opcional como horário local (SP) → instante UTC. */
 export function parseEventAt(date: string, time: string | null): Date {
   const [y, mo, d] = date.split("-").map(Number);

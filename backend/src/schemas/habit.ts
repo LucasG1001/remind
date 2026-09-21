@@ -17,6 +17,22 @@ export const completionCountSchema = z.object({
   count: z.number().int().min(0, "Contagem inválida."),
 });
 
+const TIME = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Horário inválido (use HH:MM).");
+
+export const habitReminderSchema = z.object({ time: TIME });
+
+export const reminderSkipSchema = z.object({
+  skipped: z.boolean(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (use YYYY-MM-DD)."),
+});
+
+export const reminderCompleteSchema = z.object({
+  slotIndex: z.number().int().min(0, "Índice inválido."),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (use YYYY-MM-DD)."),
+});
+
 export const reorderHabitsSchema = z.object({
   order: z.array(z.string().uuid("ID inválido.")).min(1, "Forneça ao menos um hábito."),
 });

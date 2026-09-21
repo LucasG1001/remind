@@ -18,6 +18,16 @@ export function BellIcon({ className }: IconProps) {
   );
 }
 
+export function BellOffIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+      <path d="M3 3l18 18" />
+    </Icon>
+  );
+}
+
 export function CheckIcon({ className }: IconProps) {
   return (
     <Icon className={className}>
