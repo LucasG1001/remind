@@ -15,6 +15,9 @@ import { alertApiError } from "../../utils/apiError";
 import type { BoardList, Card, CardPatch } from "../../types/project";
 import styles from "./ProjectsPage.module.css";
 
+// classList não aceita string vazia; o fallback existe só para o tipo.
+const GRABBING = styles.grabbing ?? "grabbing";
+
 const EDGE_SCROLL_PX = 48;
 const EDGE_SCROLL_STEP = 14;
 
@@ -95,10 +98,22 @@ export function ProjectsPage() {
   const lastPointRef = useRef({ x: 0, y: 0 });
   const rafRef = useRef<number | null>(null);
   const boardScrollRef = useRef<HTMLDivElement | null>(null);
+  const dragCleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     boardRef.current = board;
   }, [board]);
+
+  // A página pode desmontar no meio de um arraste (gesto de voltar do navegador, toque
+  // no bottom-nav): sem isto os listeners de window, o timer de toque longo e o rAF de
+  // auto-scroll ficavam pendurados. Mesmo padrão do TodayColumn.
+  useEffect(
+    () => () => {
+      if (pressTimerRef.current !== null) clearTimeout(pressTimerRef.current);
+      dragCleanupRef.current?.();
+    },
+    []
+  );
 
   // "?novo=1" (botão + do bottom-nav) abre o composer adequado; derivado como na HabitsPage.
   const wantsNew = searchParams.get("novo") === "1";
@@ -260,6 +275,7 @@ export function ProjectsPage() {
     };
 
     const cleanup = () => {
+      dragCleanupRef.current = null;
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onCancel);
@@ -271,6 +287,7 @@ export function ProjectsPage() {
         rafRef.current = null;
       }
     };
+    dragCleanupRef.current = cleanup;
 
     const resetDrag = () => {
       dragTypeRef.current = null;
@@ -304,6 +321,12 @@ export function ProjectsPage() {
     }
 
     const loop = () => {
+      // Condição de parada (o TodayColumn já tinha a dele): sem ela o loop sobrevivia ao
+      // fim do arraste e ao unmount, rolando para sempre o elemento sob o ponteiro.
+      if (dragTypeRef.current !== type || dragIdRef.current !== id) {
+        rafRef.current = null;
+        return;
+      }
       autoScrollAtEdges();
       rafRef.current = requestAnimationFrame(loop);
     };
@@ -412,7 +435,7 @@ export function ProjectsPage() {
       if (!moved) {
         if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
         moved = true;
-        boardEl.classList.add(styles.grabbing);
+        boardEl.classList.add(GRABBING);
       }
       boardEl.scrollLeft = startLeft - dx;
       if (cardsEl) cardsEl.scrollTop = startTop - dy;
@@ -421,7 +444,7 @@ export function ProjectsPage() {
     const onUp = () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
-      boardEl.classList.remove(styles.grabbing);
+      boardEl.classList.remove(GRABBING);
     };
 
     window.addEventListener("pointermove", onMove);

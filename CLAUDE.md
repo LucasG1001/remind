@@ -24,6 +24,7 @@ cd backend && npm test           # vitest
 cd frontend && npm run dev       # http://localhost:5173 (proxy /api → :3333)
 cd frontend && npm run build     # tsc -b + vite build
 cd frontend && npm run lint      # ESLint
+cd frontend && npm test          # vitest
 ```
 
 Pré-requisito local: PostgreSQL acessível (banco `remindme`) e um par VAPID (`npx web-push generate-vapid-keys`) para testar os avisos.
@@ -44,15 +45,21 @@ O backend roda `migrate()` no startup (criação idempotente de todas as tabelas
 
 ### Backend (`backend/src/`)
 
-Dois domínios, mesmo padrão em camadas: `types/` → `models/` (mapper `toX` snake→camel, queries parametrizadas) → `schemas/` (Zod) → `controllers/` (try/catch, valida com Zod, responde `{ error: "msg PT" }`) → `routes/` (Router + export nomeado).
+Quatro domínios (lembretes, hábitos, projetos, flashcards), mesmo padrão em camadas: `types/` → `models/` (mapper `toX` snake→camel, queries parametrizadas) → `schemas/` (Zod) → `controllers/` (valida com Zod, responde `{ error: "msg PT" }`) → `routes/` (Router + export nomeado).
+
+Erro: cada handler é embrulhado por `lib/asyncHandler.ts` — um `DomainError` (`models/errors.ts`: `CompletionLockedError`, `ReminderLimitError`, `DuplicateReminderTimeError`, `ReorderMismatchError`) vira o status dele; o resto é **logado** e vira 500. `middleware/errorHandler.ts` é a última rede, para o que escapa das rotas.
 
 - **`server.ts`** — Express, registra rotas (`/api/reminders`, `/api/habits`, `/api/projects`, `/api/flashcards`, `/api/flashcard-categories`, `/api/push`), roda `migrate()` e inicia o scheduler de lembretes.
-- **`database/connection.ts`** — pool pg (usa `DATABASE_URL`). **`database/migrate.ts`** — DDL idempotente. **`database/transaction.ts`** — `withTransaction(fn)` e `updateById` (UPDATE dinâmico reutilizado pelos models).
-- **`lib/validation.ts`** — `requireUuid`, `parseBody(res, schema, body)`, `respondValidationError` e as regex `DATE_RE`/`TIME_RE`, compartilhados pelos controllers. **`lib/sqlUpdate.ts`** — `buildUpdateSet` + `nextPositionSql`.
+- **`database/connection.ts`** — pool pg (usa `DATABASE_URL`), com `pool.on("error")`: sem esse listener um cliente idle derrubado mata o processo, e com ele o scheduler. `server.ts` trata `SIGTERM`/`SIGINT` parando o tick e fechando o pool. **`database/migrate.ts`** — DDL idempotente. **`database/transaction.ts`** — `withTransaction(fn)` e `updateById` (UPDATE dinâmico reutilizado pelos models).
+- **`lib/validation.ts`** — `requireUuid`, `parseBody(res, schema, body)`, `respondValidationError`, as regex `DATE_RE`/`TIME_RE` e os schemas Zod `calendarDateSchema`/`timeSchema`, compartilhados pelos domínios. O `calendarDateSchema` faz round-trip (`spDateKey(parseEventAt(d)) === d`): a regex sozinha aceitava "2026-02-30", que o `Date.UTC` normalizava para 02/03 em silêncio. **`lib/sqlUpdate.ts`** — `buildUpdateSet` + `nextPositionSql`.
 - **Reminders**: `models/reminderModel.ts`, `controllers/reminderController.ts`, `services/reminderScheduler.ts` (setInterval 60s) e `services/reminderStateMachine.ts` (lógica de fases, testada). `lib/dateUtils.ts` isola o fuso (America/Sao_Paulo, UTC-3).
+- **Estado do lembrete, dois invariantes**: (1) `finishOccurrence` avança a grade **até a primeira ocorrência futura** — somar um intervalo só devolveria uma data ainda vencida numa série abandonada, e cada "concluir" disparava um aviso de evento passado; (2) `realignPhase` compara `now` com `event_at` antes de escolher a mensagem, senão um processo que voltou do ar mandava "faltam 30 minutos" depois do evento.
+- **Tick de lembretes**: cada linha é relida com `FOR UPDATE` dentro de `withTransaction` e a decisão sai desse estado fresco — o `findDue` é só a fila de candidatos. Sem isso, uma soneca feita durante o envio era apagada pelo `UPDATE` do scheduler (last-write-wins). E se `canDeliverPush()` for falso (sem VAPID ou sem aparelho inscrito), o tick **não grava nada**: avançar a fase gastaria o ciclo de avisos em silêncio, e não gravar já é o retry.
 - **Habits**: `models/habitModel.ts` (inclui conclusões + `CompletionLockedError` e `ReminderLimitError`), `controllers/habitController.ts`, `services/habitReminderState.ts` (decisão pura, testada) + `services/habitScheduler.ts`, chamado de dentro do tick de lembretes — não há um segundo `setInterval`, a guarda `inFlight` é por módulo.
-- **Avisos de hábito**: cada horário insiste na grade `dueAt + k*5min` e a janela fecha em **+25 min** (as 5 insistências), cortada também pelo horário seguinte e pela meia-noite de SP. "Cumprido" é **derivado, nunca gravado** — o horário de índice `k` está cumprido se `k < min(count, targetCount, nº de horários)`, e é isso que faz desfazer um check reativar o aviso. Só o pendente mais antigo avisa. `count` pode exceder a meta (o clamp do banco só vale na escrita), daí o `min` triplo.
-- **Web Push**: `services/pushService.ts` (lib `web-push`) faz fan-out para todas as linhas de `push_subscriptions`, com `urgency: high`, `TTL` de 15 min e `topic` derivado de `collapseKey` (limite de 32 chars do header). O `PushPayload` tem `kind: "reminder" | "habit"`; **o id do hábito nunca vai em `reminderId`** — é o contrato de compatibilidade: num aparelho com o service worker antigo em cache, a falta de `reminderId` cai no ramo de push de teste em vez de postar em `/api/reminders/<habitId>`. Todo o conteúdo vai no payload cifrado — o service worker nunca busca dados para montar a notificação. `404`/`410` do endpoint remove a subscription. Rotas em `/api/push` (`public-key`, `subscribe`, `unsubscribe`, `test`).
+- **Avisos de hábito**: cada horário insiste na grade `dueAt + k*5min` e a janela fecha em **+25 min** (as 5 insistências), cortada também pelo horário seguinte e pela meia-noite de SP. "Cumprido" é **derivado, nunca gravado** — o horário de índice `k` está cumprido se `k < min(count, targetCount, nº de horários)`, e é isso que faz desfazer um check reativar o aviso. Só o pendente mais antigo avisa. `count` pode exceder a meta (o clamp do banco só vale na escrita), daí o `min` triplo. `decideHabitTick` e `nextPendingSlot` **têm de pular igualmente** o horário `skipped`: divergir faz o sino do app agir sobre um aviso que não vai disparar.
+- **Web Push**: `services/pushService.ts` (lib `web-push`) faz fan-out para todas as linhas de `push_subscriptions`, com `urgency: high`, `TTL` de 15 min e `topic` derivado de `collapseKey` (limite de 32 chars do header). O `PushPayload` tem `kind: "reminder" | "habit"`; **o id do hábito nunca vai em `reminderId`** — é o contrato de compatibilidade: num aparelho com o service worker antigo em cache, a falta de `reminderId` cai no ramo de push de teste em vez de postar em `/api/reminders/<habitId>`. Todo o conteúdo vai no payload cifrado — o service worker nunca busca dados para montar a notificação. `404`/`410`/`403`/`400` do endpoint removem a subscription (403 é o par VAPID regerado: mantidas, essas linhas fariam `sent` ficar em zero para sempre). `vapidPublicKey()` só devolve a chave com as **três** variáveis presentes, senão o app concluía o opt-in e nada chegava. Rotas em `/api/push` (`public-key`, `subscribe`, `unsubscribe`, `test` — este com cooldown de 30 s, porque dispara para todos os aparelhos).
+- **Ações idempotentes**: o push vai para todos os aparelhos, então o mesmo botão pode ser tocado em cada um. `POST /acknowledge` aceita `{ occurrenceAt }` (o `event_at` que o cliente viu) e ignora o clique quando a série já andou — sem isso, dois cliques faziam um semanal saltar duas semanas. `acknowledge` e `reschedule` exigem `status === "active"` (como o `snooze` já fazia), senão um cancelado era ressuscitado.
+- **Flashcards**: `models/flashcardModel.ts` + `flashcardCategoryModel.ts`, `controllers/`, e `services/flashcardScheduler.ts` — Leitner sem teto: caixa 1 e o primeiro acerto valem 1 dia, cada acerto seguinte dobra o intervalo (1, 1, 2, 4, 8…), errar volta para a caixa 1. A próxima revisão cai às 4h de SP (`DAY_START_HOUR`).
 - **Soneca**: `POST /api/reminders/:id/snooze` grava `phase = "snoozed"` e um novo `next_notify_at` **sem tocar em `event_at`** — é o que separa soneca de remarcar. A fase `snoozed` retoma a trilha via `initialSchedule` quando o evento ainda está no futuro.
 
 ### Frontend (`frontend/src/`)
@@ -72,17 +79,17 @@ Dois domínios, mesmo padrão em camadas: `types/` → `models/` (mapper `toX` s
 
 ### Endpoints
 
-- `GET/POST /api/reminders`; `GET/PUT/DELETE /api/reminders/:id`; `POST /api/reminders/:id/acknowledge`, `/cancel`, `/reschedule` e `/snooze` (body `{ minutes }`).
+- `GET/POST /api/reminders` (o `?status=` inválido é 400, não "devolve tudo"); `GET/PUT/DELETE /api/reminders/:id`; `POST /api/reminders/:id/acknowledge` (body opcional `{ occurrenceAt }`), `/cancel`, `/reschedule` e `/snooze` (body `{ minutes }`). No `PUT`, `time` é **obrigatório** (string ou `null`): sendo opcional, um corpo sem ele convertia o lembrete em dia inteiro.
 - `GET /api/push/public-key`; `POST /api/push/subscribe`, `/unsubscribe` e `/test`.
 - `GET/POST /api/habits`; `PUT/DELETE /api/habits/:id`; `PATCH /api/habits/:id/completion/:date` (body `{ count: number }`).
-- `POST /api/habits/:id/reminders` (body `{ time }`); `DELETE /api/habits/reminders/:reminderId`; `POST /api/habits/reminders/:reminderId/skip` (body `{ skipped, date }`); `POST /api/habits/:id/reminders/complete` (body `{ slotIndex, date }`, alvo do botão da notificação — **idempotente**, faz `GREATEST(atual, slotIndex+1)`, porque o push vai para todos os aparelhos). As rotas `/reminders/...` ficam **antes** das de `:id` no Router, senão "reminders" casa como id de hábito.
+- `POST /api/habits/:id/reminders` (body `{ time }`); `DELETE /api/habits/reminders/:reminderId`; `POST /api/habits/reminders/:reminderId/skip` (body `{ skipped, date }`); `POST /api/habits/:id/reminders/complete` (body `{ slotId?, slotIndex, date }`, alvo do botão da notificação — **idempotente**, faz `GREATEST(atual, slotIndex+1)`, porque o push vai para todos os aparelhos). Quando vem `slotId`, o **servidor** resolve o índice pela ordem de `time`: o índice do payload envelhece, porque adicionar um horário mais cedo desloca todos. As rotas `/reminders/...` ficam **antes** das de `:id` no Router, senão "reminders" casa como id de hábito.
 - `POST /api/projects/:id/tags`; `PUT/DELETE /api/projects/tags/:tagId`. O `PUT /api/projects/cards/:cardId` aceita `tagIds` (substitui o conjunto inteiro; `[]` limpa).
 
 ### Schema do banco
 
 - **`reminders`** — lembrete com `event_at`, `is_all_day`, recorrência (`recur_*`), `status`, `phase`, `next_notify_at`, `notify_count`, `max_notify`, etc.
 - **`habits`** — `id`, `name`, `selected_days INTEGER[]` (0–6), `icon`, `target_count`, `position`, timestamps. Sequência/nível são recalculados no cliente (não persistidos). `GET /api/habits` devolve o histórico completo de conclusões, sem janela de data — é o que sustenta a visão de ano.
-- **`habit_reminders`** — horário de aviso de um hábito (`habit_id` FK cascade, `time` "HH:MM" de SP, `UNIQUE(habit_id, time)`). **Sem coluna de posição**: a ordem é o `time`, e o índice nessa ordem é a chave que decide se o aviso já foi cumprido — duas fontes de verdade aqui viram bug. A trava "nº de horários ≤ `target_count`" é no controller, não no Zod (o `PUT` é substituição total e rejeitaria o formulário inteiro).
+- **`habit_reminders`** — horário de aviso de um hábito (`habit_id` FK cascade, `time` "HH:MM" de SP, `UNIQUE(habit_id, time)`). **Sem coluna de posição**: a ordem é o `time`, e o índice nessa ordem é a chave que decide se o aviso já foi cumprido — duas fontes de verdade aqui viram bug. A trava "nº de horários ≤ `target_count`" é no controller, não no Zod (o `PUT` é substituição total e rejeitaria o formulário inteiro). Pelo mesmo motivo `targetCount` **não** tem `.default` no `updateHabitSchema`: um corpo sem o campo rebaixava a meta para 1, desativando horários e reescrevendo o heatmap.
 - **`habit_reminder_runtime`** — estado do dia de um horário (`habit_reminder_id` FK cascade, `date`, `skipped`, `last_sent_at`, PK composta), criado **sob demanda**: ausência de linha É o estado limpo, então não existe rotina de reset nem corrida na virada do dia. `migrate()` apaga o que passou de 7 dias.
 - **`habit_completions`** — `habit_id` (FK cascade), `date TEXT` (YYYY-MM-DD), `count`, `locked`, `UNIQUE(habit_id, date)`. O campo `completed` da API é derivado (`count >= target_count`).
 - **`project_tags`** — tag de um projeto (`project_id` FK cascade, `name`, `color`, `icon`, `position`). A cor é restringida à paleta `TAG_COLORS` no Zod (`schemas/project.ts`, espelhada em `frontend/src/utils/tagPalette.ts`), não no banco.
@@ -92,11 +99,12 @@ Dois domínios, mesmo padrão em camadas: `types/` → `models/` (mapper `toX` s
 ## Convenções
 
 - **Idioma**: código (variáveis, tipos, arquivos) em inglês; textos ao usuário (erros de API, UI) em português.
-- **TypeScript** strict nos dois lados. Backend `module: NodeNext` → **imports com extensão `.js`**. Frontend `moduleResolution: bundler` → sem extensão.
+- **TypeScript** strict nos dois lados, com `noUncheckedIndexedAccess` no frontend. Backend `module: NodeNext` → **imports com extensão `.js`**. Frontend `moduleResolution: bundler` → sem extensão.
 - **Estilo**: CSS Modules por componente, sem libs de UI. Sempre usar as variáveis do `global.css`, nunca hardcode de cores/tamanhos.
 - **Estado**: só hooks do React (`useState`/`useEffect`/etc.) — sem Redux/Zustand.
 - **Sem comentários** no código, exceto quando registram uma restrição não óbvia.
-- **HTTP**: `201` create, `204` delete, `400` validação, `404` not found, `409` conflito (`CompletionLockedError`), `500` erro.
+- **HTTP**: `201` create, `204` delete, `400` validação, `404` not found, `409` conflito (`CompletionLockedError`, `DuplicateReminderTimeError`), `429` rate limit, `500` erro.
+- **Testes**: vitest nos dois lados, só sobre funções puras (estado dos avisos, fuso, nível/heatmap/sequência, placeholders de SQL). Ao corrigir um bug de lógica, o teste que o pega vai na mesma tarefa.
 
 ## Fuso horário
 

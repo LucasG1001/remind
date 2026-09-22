@@ -22,6 +22,12 @@ export async function findAll(): Promise<PushSubscription[]> {
   return result.rows.map(toPushSubscription);
 }
 
+/** Quantos aparelhos inscritos. Barato de propósito: roda uma vez por tick. */
+export async function count(): Promise<number> {
+  const result = await pool.query<{ n: string }>("SELECT COUNT(*) AS n FROM push_subscriptions");
+  return Number(result.rows[0]?.n ?? 0);
+}
+
 export async function upsert(input: NewPushSubscription): Promise<PushSubscription> {
   const result = await pool.query<PushSubscriptionRow>(
     `INSERT INTO push_subscriptions (endpoint, p256dh, auth, user_agent)

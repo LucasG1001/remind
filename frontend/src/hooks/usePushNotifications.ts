@@ -9,6 +9,20 @@ function isSupported(): boolean {
   return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 }
 
+/**
+ * A subscription guarda a chave VAPID com que foi criada. Se o par foi regerado no
+ * servidor, ela continua "válida" para o navegador mas todo envio volta 403 — e o
+ * botão de ativar reencontrava a antiga e reportava sucesso sem efeito nenhum.
+ * Quando o navegador não expõe a chave, mantém a existente em vez de recriar sempre.
+ */
+function usesServerKey(subscription: PushSubscription, publicKey: string): boolean {
+  const current = subscription.options?.applicationServerKey;
+  if (!current) return true;
+  const actual = new Uint8Array(current);
+  const expected = new Uint8Array(urlBase64ToArrayBuffer(publicKey));
+  return actual.length === expected.length && actual.every((byte, i) => byte === expected[i]);
+}
+
 export function usePushNotifications() {
   const supported = isSupported();
   const [permission, setPermission] = useState<NotificationPermission>(() =>
@@ -58,6 +72,11 @@ export function usePushNotifications() {
       }
       const registration = await navigator.serviceWorker.register(SW_URL);
       await navigator.serviceWorker.ready;
+      const stale = await registration.pushManager.getSubscription();
+      if (stale && !usesServerKey(stale, publicKey)) {
+        await removeSubscription(stale.endpoint).catch(() => undefined);
+        await stale.unsubscribe();
+      }
       const subscription =
         (await registration.pushManager.getSubscription()) ??
         (await registration.pushManager.subscribe({

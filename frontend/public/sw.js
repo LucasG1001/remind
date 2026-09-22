@@ -23,6 +23,37 @@ const FALLBACK = {
   url: DEFAULT_URL,
 };
 
+/** A chave VAPID chega em base64url e o applicationServerKey só aceita bytes. */
+function urlBase64ToBytes(base64) {
+  const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+  const raw = self.atob(padded.replace(/-/g, "+").replace(/_/g, "/"));
+  const bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  return bytes;
+}
+
+/**
+ * O navegador rotaciona/expira a subscription por conta própria. Sem reinscrever
+ * aqui, os avisos param até alguém abrir o app — e o caso de uso deste app é
+ * justamente não precisar abrir.
+ */
+async function resubscribe() {
+  const response = await fetch("/api/push/public-key");
+  if (!response.ok) return;
+  const { publicKey } = await response.json();
+  if (!publicKey) return;
+  const subscription = await self.registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToBytes(publicKey),
+  });
+  await postJson("/api/push/subscribe", subscription.toJSON());
+}
+
+self.addEventListener("pushsubscriptionchange", (event) => {
+  // Falha aqui é silenciosa de propósito: o app refaz o upsert no próximo open.
+  event.waitUntil(resubscribe().catch(() => undefined));
+});
+
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
@@ -34,8 +65,16 @@ function readPayload(event) {
   }
 }
 
-function notify(title, body, tag) {
-  return self.registration.showNotification(title, { body, icon: ICON, badge: BADGE, tag });
+// `data.url` também aqui: sem isso o clique na confirmação de um hábito cairia no
+// fallback do notificationclick e abriria /lembretes.
+function notify(title, body, tag, url) {
+  return self.registration.showNotification(title, {
+    body,
+    icon: ICON,
+    badge: BADGE,
+    tag,
+    data: { url: url ?? DEFAULT_URL },
+  });
 }
 
 async function postJson(url, body) {
@@ -69,35 +108,49 @@ async function notifyClients(message) {
   }
 }
 
-async function handleHabitAction(action, habit, tag) {
-  if (action === "habit-skip") {
-    await postJson(`/api/habits/reminders/${habit.slotId}/skip`, { skipped: true, date: habit.date });
-    await notifyClients({ type: "habit-updated", habitId: habit.habitId, action });
-    await notify("🔕 Aviso desligado", "Não insisto mais neste horário hoje.", tag);
-    return;
+async function handleHabitAction(action, habit, tag, url) {
+  // switch explícito, como nos lembretes: um catch-all fazia qualquer ação
+  // desconhecida (service worker velho recebendo payload novo) registrar um check.
+  switch (action) {
+    case "habit-skip":
+      await postJson(`/api/habits/reminders/${habit.slotId}/skip`, { skipped: true, date: habit.date });
+      await notifyClients({ type: "habit-updated", habitId: habit.habitId, action });
+      await notify("🔕 Aviso desligado", "Não insisto mais neste horário hoje.", tag, url);
+      return;
+    // Idempotente no servidor: o push vai para todos os aparelhos, e esta
+    // notificação pode ser tocada duas vezes ou minutos depois do check no app.
+    case "habit-done":
+      await postJson(`/api/habits/${habit.habitId}/reminders/complete`, {
+        // O servidor resolve o índice pelo slotId: entre este push e o toque o
+        // usuário pode ter adicionado um horário mais cedo, deslocando os índices.
+        slotId: habit.slotId,
+        slotIndex: habit.slotIndex,
+        date: habit.date,
+      });
+      await notifyClients({ type: "habit-updated", habitId: habit.habitId, action });
+      await notify("✅ Check registrado", "Mandou bem. 🙂", tag, url);
+      return;
+    default:
+      return;
   }
-  // Idempotente no servidor: o push vai para todos os aparelhos, e esta
-  // notificação pode ser tocada duas vezes ou minutos depois do check no app.
-  await postJson(`/api/habits/${habit.habitId}/reminders/complete`, {
-    slotIndex: habit.slotIndex,
-    date: habit.date,
-  });
-  await notifyClients({ type: "habit-updated", habitId: habit.habitId, action });
-  await notify("✅ Check registrado", "Mandou bem. 🙂", tag);
 }
 
 async function handleAction(action, data) {
   const { kind, reminderId, habit } = data;
+  const url = data.url ?? DEFAULT_URL;
   const tag = kind === "habit" ? `habit:${habit?.habitId}` : reminderId ?? "remindme";
 
-  if (kind !== "habit" && !reminderId) {
-    await notify("✅ Botão funcionando", "Era um push de teste — nada foi alterado.", tag);
+  // Payload sem o alvo da ação (push de teste, ou SW velho lendo um payload novo):
+  // sem esta guarda o `habit` nulo estouraria dentro do try e o catch reportaria
+  // falta de conexão com a rede perfeita.
+  if (kind === "habit" ? !habit : !reminderId) {
+    await notify("✅ Botão funcionando", "Era um push de teste — nada foi alterado.", tag, url);
     return;
   }
 
   try {
     if (kind === "habit") {
-      await handleHabitAction(action, habit, tag);
+      await handleHabitAction(action, habit, tag, url);
       return;
     }
     // switch explícito: um `else` catch-all faria qualquer ação desconhecida
@@ -106,18 +159,22 @@ async function handleAction(action, data) {
       case "snooze-15":
         await postJson(`/api/reminders/${reminderId}/snooze`, { minutes: 15 });
         await notifyClients({ type: "reminder-updated", reminderId, action });
-        await notify("😴 Soneca de 15 minutos", "Te aviso de novo em 15 min — o compromisso segue no mesmo horário.", tag);
+        await notify("😴 Soneca de 15 minutos", "Te aviso de novo em 15 min — o compromisso segue no mesmo horário.", tag, url);
         break;
       case "done":
-        await postJson(`/api/reminders/${reminderId}/acknowledge`);
+        // `occurrenceAt` identifica a ocorrência: o push vai para todos os aparelhos
+        // e, sem isto, dois cliques faziam um semanal saltar duas semanas.
+        await postJson(`/api/reminders/${reminderId}/acknowledge`, {
+          occurrenceAt: data.occurrenceAt ?? undefined,
+        });
         await notifyClients({ type: "reminder-updated", reminderId, action });
-        await notify("✅ Concluído", "Lembrete marcado como concluído.", tag);
+        await notify("✅ Concluído", "Lembrete marcado como concluído.", tag, url);
         break;
       default:
         break;
     }
   } catch {
-    await notify("⚠️ Não deu para salvar", "Sem conexão com o RemindMe. Abra o app para concluir ou adiar.", tag);
+    await notify("⚠️ Não deu para salvar", "Sem conexão com o RemindMe. Abra o app para concluir ou adiar.", tag, url);
   }
 }
 
@@ -142,6 +199,7 @@ self.addEventListener("push", (event) => {
       data: {
         kind,
         reminderId: payload.reminderId ?? null,
+        occurrenceAt: payload.occurrenceAt ?? null,
         habit: payload.habit ?? null,
         url: payload.url ?? DEFAULT_URL,
       },

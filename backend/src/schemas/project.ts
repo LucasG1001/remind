@@ -59,7 +59,10 @@ export const updateTagSchema = z.object({
 });
 
 export const reorderListsSchema = z.object({
-  order: z.array(z.string().uuid("ID inválido.")).min(1, "Forneça ao menos uma lista."),
+  order: z
+    .array(z.string().uuid("ID inválido."))
+    .min(1, "Forneça ao menos uma lista.")
+    .refine((ids) => new Set(ids).size === ids.length, { message: "Ordem com ids repetidos." }),
 });
 
 export const moveCardSchema = z.object({

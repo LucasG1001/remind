@@ -109,6 +109,9 @@ export function nextPendingSlot(input: HabitTickInput): { slot: HabitReminderSlo
   const satisfiedThrough = Math.min(count, active);
   for (let index = satisfiedThrough; index < active; index++) {
     const slot = slots[index]!;
+    // Mesma guarda de decideHabitTick: um horário desligado hoje não é "o próximo
+    // aviso", senão o sino do app agiria sobre um horário que não vai disparar.
+    if (slot.skipped) continue;
     const dueAt = slotDueAt(input.todayKey, slot.time);
     const next = slots[index + 1];
     const windowEnd = Math.min(

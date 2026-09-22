@@ -38,8 +38,11 @@ export function useReminders() {
   );
 
   const acknowledge = useCallback(
-    async (id: string) => applyUpdate(await acknowledgeReminder(id)),
-    [applyUpdate]
+    async (id: string) => {
+      const target = reminders.find((r) => r.id === id);
+      applyUpdate(await acknowledgeReminder(id, target?.eventAt));
+    },
+    [applyUpdate, reminders]
   );
 
   const reschedule = useCallback(

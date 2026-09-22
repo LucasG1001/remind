@@ -14,7 +14,8 @@ import { flashcardRoutes } from "./routes/flashcardRoutes.js";
 import { flashcardCategoryRoutes } from "./routes/flashcardCategoryRoutes.js";
 import { pushRoutes } from "./routes/pushRoutes.js";
 import { notFoundHandler, errorHandler } from "./middleware/errorHandler.js";
-import { startScheduler } from "./services/reminderScheduler.js";
+import { startScheduler, stopScheduler } from "./services/reminderScheduler.js";
+import { pool } from "./database/connection.js";
 
 const app = express();
 const PORT = process.env.PORT || 3333;
@@ -35,11 +36,22 @@ app.use("/api/push", pushRoutes);
 
 const clientDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../public");
 if (existsSync(clientDir)) {
-  app.use(express.static(clientDir));
+  // Os assets do Vite têm hash no nome e podem ficar no cache; o shell e o service
+  // worker, não — senão um deploy novo continua servindo a versão velha.
+  app.use(
+    express.static(clientDir, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith("index.html") || filePath.endsWith("sw.js")) {
+          res.setHeader("Cache-Control", "no-cache");
+        }
+      },
+    })
+  );
   app.use((req, res, next) => {
     if (req.method !== "GET" || req.path.startsWith("/api/")) {
       return next();
     }
+    res.setHeader("Cache-Control", "no-cache");
     res.sendFile(path.join(clientDir, "index.html"));
   });
 }
@@ -49,10 +61,27 @@ app.use(errorHandler);
 
 async function start(): Promise<void> {
   await migrate();
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     process.stdout.write(`RemindMe backend rodando em http://localhost:${PORT}\n`);
   });
   startScheduler();
+
+  // Encerramento ordenado: para o tick e devolve as conexões antes de sair, em vez de
+  // o processo morrer entre o UPDATE de um lembrete e o envio do push dele.
+  let closing = false;
+  const shutdown = (signal: string): void => {
+    if (closing) return;
+    closing = true;
+    console.log(`Recebi ${signal}, encerrando…`);
+    stopScheduler();
+    server.close(() => {
+      void pool.end().finally(() => process.exit(0));
+    });
+    // Conexão pendurada não pode impedir o encerramento.
+    setTimeout(() => process.exit(0), 10_000).unref();
+  };
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
 start().catch((error) => {

@@ -12,6 +12,8 @@ import styles from "./ReminderCalendar.module.css";
 
 interface ReminderCalendarProps {
   byDay: Map<string, Reminder[]>;
+  /** Falha ao carregar: sem isto o calendário vazio parecia "nenhum lembrete". */
+  error?: string | null;
   onClose: () => void;
 }
 
@@ -20,7 +22,7 @@ function dayPanelLabel(dateKey: string): string {
   return `${WEEKDAY_ABBR_PT[d.getDay()]}, ${d.getDate()} de ${MONTH_PT[d.getMonth()]!.toLowerCase()}`;
 }
 
-export function ReminderCalendar({ byDay, onClose }: ReminderCalendarProps) {
+export function ReminderCalendar({ byDay, error, onClose }: ReminderCalendarProps) {
   const navigate = useNavigate();
   const today = getToday();
   const { view, goPrev, goNext, monthLabel, firstDayOffset: offset, days } = useMonthGrid();
@@ -75,6 +77,8 @@ export function ReminderCalendar({ byDay, onClose }: ReminderCalendarProps) {
             ×
           </button>
         </div>
+
+        {error && <p className={styles.error}>{error}</p>}
 
         <div className={styles.weekHeader}>
           {WEEKDAY_LETTERS.map((label, i) => (

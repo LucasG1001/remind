@@ -6,32 +6,23 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface ReminderSummary {
   todayCount: number;
-  weekCount: number;
-  activeCount: number;
   awaiting: Reminder[];
-  next: Reminder | null;
 }
 
 export function summarizeReminders(reminders: Reminder[]): ReminderSummary {
-  const now = Date.now();
   const start = getToday().getTime();
   const todayEnd = start + DAY_MS;
-  const weekEnd = start + 7 * DAY_MS;
 
   let todayCount = 0;
-  let weekCount = 0;
   const awaiting: Reminder[] = [];
-  let next: Reminder | null = null;
 
   for (const reminder of reminders) {
     const when = Date.parse(reminder.eventAt);
     if (when >= start && when < todayEnd) todayCount += 1;
-    if (when >= start && when < weekEnd) weekCount += 1;
     if (reminder.notifyCount > 0 && !reminder.acknowledged) awaiting.push(reminder);
-    if (when >= now && (next === null || when < Date.parse(next.eventAt))) next = reminder;
   }
 
-  return { todayCount, weekCount, activeCount: reminders.length, awaiting, next };
+  return { todayCount, awaiting };
 }
 
 export interface HabitToday {
@@ -44,7 +35,6 @@ export interface HabitSummary {
   doneToday: number;
   totalToday: number;
   bestStreak: number;
-  habitCount: number;
 }
 
 export function summarizeHabits(habits: Habit[]): HabitSummary {
@@ -69,7 +59,6 @@ export function summarizeHabits(habits: Habit[]): HabitSummary {
     doneToday,
     totalToday: todayList.length,
     bestStreak,
-    habitCount: habits.length,
   };
 }
 

@@ -34,7 +34,22 @@ export const unsubscribe = asyncHandler("Erro ao remover o aparelho.", async (re
   res.status(204).send();
 });
 
+/**
+ * O endpoint dispara push para todos os aparelhos e o app não tem auth: em loop, vira
+ * spam de notificação no celular. Uma janela em memória basta para um app de um só
+ * usuário — o processo é único.
+ */
+const TEST_COOLDOWN_MS = 30_000;
+let lastTestAt = 0;
+
 export const test = asyncHandler("Erro ao enviar a notificação de teste.", async (_req, res) => {
+  const now = Date.now();
+  if (now - lastTestAt < TEST_COOLDOWN_MS) {
+    res.status(429).json({ error: "Espere um pouco antes de enviar outro teste." });
+    return;
+  }
+  lastTestAt = now;
+
   const sent = await sendPush({
     title: "🔔 Teste do RemindMe",
     description: "Se você está vendo isso com os botões abaixo, as notificações estão funcionando.",

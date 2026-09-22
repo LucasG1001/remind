@@ -147,6 +147,17 @@ describe("nextPendingSlot", () => {
   it("nada pendente depois de cumprir a meta", () => {
     expect(nextPendingSlot(makeInput({ count: 3, now: at("09:00") }))).toBeNull();
   });
+
+  it("pula o horário desligado hoje, mesmo com a janela dele aberta", () => {
+    // Sem isto o sino do app agiria sobre o 08:00 já desligado (reativando-o) em vez
+    // do 12:00, que é o aviso que vai realmente disparar.
+    const slots = [slot("s0", "08:00", { skipped: true }), slot("s1", "12:00"), slot("s2", "18:00")];
+    expect(nextPendingSlot(makeInput({ slots, now: at("08:05") }))).toMatchObject({ index: 1 });
+  });
+
+  it("nada pendente em dia fora de selected_days", () => {
+    expect(nextPendingSlot(makeInput({ selectedDays: [0, 6], now: at("09:00") }))).toBeNull();
+  });
 });
 
 describe("spDateKey", () => {

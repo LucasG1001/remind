@@ -19,6 +19,7 @@ interface UseFlashcardsReturn {
   createCard: (data: FlashcardFormData) => Promise<void>;
   updateCard: (id: string, data: FlashcardFormData) => Promise<void>;
   deleteCard: (id: string) => Promise<void>;
+  reload: () => void;
   bulkDelete: (ids: string[]) => Promise<void>;
   bulkMove: (ids: string[], categoryId: string | null) => Promise<void>;
   applyReview: (id: string, correct: boolean) => Promise<Flashcard>;
@@ -30,6 +31,7 @@ export function useFlashcards(): UseFlashcardsReturn {
     setItems: setCards,
     loading,
     error,
+    reload,
   } = useFetchList<Flashcard>(fetchFlashcards, "Não foi possível carregar os flashcards.");
 
   const dueCount = useMemo(() => countDue(cards), [cards]);
@@ -49,16 +51,28 @@ export function useFlashcards(): UseFlashcardsReturn {
     setCards((prev) => prev.filter((c) => c.id !== id));
   }
 
+  // allSettled, e nao all: com `all` uma falha no meio rejeitava antes de qualquer
+  // setCards, e a lista seguia exibindo cartoes ja apagados no servidor.
   async function bulkDelete(ids: string[]): Promise<void> {
-    await Promise.all(ids.map((id) => apiDeleteFlashcard(id)));
-    const removed = new Set(ids);
+    const results = await Promise.allSettled(ids.map((id) => apiDeleteFlashcard(id)));
+    const removed = new Set(ids.filter((_, i) => results[i]?.status === "fulfilled"));
     setCards((prev) => prev.filter((c) => !removed.has(c.id)));
+    const failed = results.length - removed.size;
+    if (failed > 0) throw new Error(`Não foi possível excluir ${failed} card(s).`);
   }
 
   async function bulkMove(ids: string[], categoryId: string | null): Promise<void> {
-    const updated = await Promise.all(ids.map((id) => apiSetFlashcardCategory(id, categoryId)));
-    const byId = new Map(updated.map((c) => [c.id, c]));
+    const results = await Promise.allSettled(
+      ids.map((id) => apiSetFlashcardCategory(id, categoryId))
+    );
+    const byId = new Map(
+      results
+        .filter((r): r is PromiseFulfilledResult<Flashcard> => r.status === "fulfilled")
+        .map((r) => [r.value.id, r.value])
+    );
     setCards((prev) => prev.map((c) => byId.get(c.id) ?? c));
+    const failed = results.length - byId.size;
+    if (failed > 0) throw new Error(`Não foi possível mover ${failed} card(s).`);
   }
 
   async function applyReview(id: string, correct: boolean): Promise<Flashcard> {
@@ -72,6 +86,7 @@ export function useFlashcards(): UseFlashcardsReturn {
     loading,
     error,
     dueCount,
+    reload,
     createCard,
     updateCard,
     deleteCard,

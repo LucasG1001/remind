@@ -1,4 +1,11 @@
 import { z } from "zod";
+import { calendarDateSchema, timeSchema } from "../lib/validation.js";
+
+const targetCount = z
+  .number({ error: "Informe a meta de vezes por dia." })
+  .int()
+  .min(1, "Meta mínima é 1.")
+  .max(50, "Meta máxima é 50.");
 
 const baseHabit = z.object({
   name: z.string().min(1, "Informe um nome.").max(200),
@@ -6,35 +13,41 @@ const baseHabit = z.object({
   selectedDays: z
     .array(z.number().int().min(0).max(6))
     .min(1, "Escolha ao menos um dia."),
-  targetCount: z.number().int().min(1, "Meta mínima é 1.").max(50, "Meta máxima é 50.").default(1),
 });
 
-export const createHabitSchema = baseHabit;
+export const createHabitSchema = baseHabit.extend({ targetCount: targetCount.default(1) });
 
-export const updateHabitSchema = baseHabit;
+// Sem `.default` no update: o PUT é substituição total, e um corpo sem targetCount
+// rebaixaria a meta para 1 em silêncio — o que desativa horários e reescreve o heatmap.
+export const updateHabitSchema = baseHabit.extend({ targetCount });
 
 export const completionCountSchema = z.object({
   count: z.number().int().min(0, "Contagem inválida."),
 });
 
-const TIME = z
-  .string()
-  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Horário inválido (use HH:MM).");
-
-export const habitReminderSchema = z.object({ time: TIME });
+export const habitReminderSchema = z.object({ time: timeSchema });
 
 export const reminderSkipSchema = z.object({
   skipped: z.boolean(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (use YYYY-MM-DD)."),
+  date: calendarDateSchema,
 });
 
 export const reminderCompleteSchema = z.object({
+  /**
+   * Horário que gerou o aviso. Quem manda é ele, não o `slotIndex`: a chave do
+   * "cumprido" é a posição na ordem por `time`, e adicionar um horário mais cedo
+   * entre o envio do push e o toque desloca todos os índices.
+   */
+  slotId: z.string().uuid("ID inválido.").optional(),
   slotIndex: z.number().int().min(0, "Índice inválido."),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (use YYYY-MM-DD)."),
+  date: calendarDateSchema,
 });
 
 export const reorderHabitsSchema = z.object({
-  order: z.array(z.string().uuid("ID inválido.")).min(1, "Forneça ao menos um hábito."),
+  order: z
+    .array(z.string().uuid("ID inválido."))
+    .min(1, "Forneça ao menos um hábito.")
+    .refine((ids) => new Set(ids).size === ids.length, { message: "Ordem com ids repetidos." }),
 });
 
 export type CreateHabitBody = z.infer<typeof createHabitSchema>;

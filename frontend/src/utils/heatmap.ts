@@ -49,8 +49,11 @@ export function buildDayContext(habit: HabitSlice): HabitDayContext {
 export function dayState(date: Date, ctx: HabitDayContext): DayState {
   if (date > ctx.today) return "future";
   if (date < ctx.createdDay) return "notScheduled";
-  if (!ctx.selectedDays.includes(getDayOfWeek(date))) return "notScheduled";
+  // `completed` antes de `selectedDays`: um check dado num dia que depois saiu da
+  // agenda do hábito continua sendo um check — antes ele virava célula cinza e
+  // desaparecia do heatmap e dos totais sem aviso.
   if (ctx.completed.has(formatDateKey(date))) return "completed";
+  if (!ctx.selectedDays.includes(getDayOfWeek(date))) return "notScheduled";
   return isSameDay(date, ctx.today) ? "pending" : "missed";
 }
 

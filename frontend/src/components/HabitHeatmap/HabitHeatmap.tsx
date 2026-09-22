@@ -10,9 +10,9 @@ interface HabitHeatmapProps {
 }
 
 const VARIANT: Record<Period, string> = {
-  week: styles.week,
-  month: styles.month,
-  year: styles.year,
+  week: styles.week ?? "",
+  month: styles.month ?? "",
+  year: styles.year ?? "",
 };
 
 export function HabitHeatmap({ period, grid }: HabitHeatmapProps) {

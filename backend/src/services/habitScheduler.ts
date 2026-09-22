@@ -3,7 +3,7 @@ import { spDateKey } from "../lib/dateUtils.js";
 import * as habitModel from "../models/habitModel.js";
 import { decideHabitTick, type HabitReminderSlot } from "./habitReminderState.js";
 import * as messages from "./habitMessages.js";
-import { sendPush } from "./pushService.js";
+import { canDeliverPush, sendPush } from "./pushService.js";
 
 interface HabitDueRow {
   id: string;
@@ -46,6 +46,14 @@ export async function processHabitsDue(now: Date = new Date()): Promise<void> {
   const weekday = new Date(now.getTime() - 3 * 60 * 60 * 1000).getUTCDay();
 
   const due = await pool.query<HabitDueRow>(DUE_SQL, [todayKey, weekday]);
+  if (due.rows.length === 0) return;
+
+  // Mesmo motivo do scheduler de lembretes: `markReminderSent` consome o ponto da
+  // grade de insistência, então sem canal de entrega o aviso se perderia de vez.
+  if (!(await canDeliverPush())) {
+    console.warn("[habits] avisos pendentes sem canal de push — grade preservada para o próximo tick.");
+    return;
+  }
 
   for (const row of due.rows) {
     try {

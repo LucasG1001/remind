@@ -1,5 +1,6 @@
+import type { PoolClient } from "pg";
 import { pool } from "../database/connection.js";
-import { updateById } from "../database/transaction.js";
+import { updateById, type Db } from "../database/transaction.js";
 import { buildUpdateSet } from "../lib/sqlUpdate.js";
 import { computeNextOccurrence } from "../lib/dateUtils.js";
 import type { NewReminder, Reminder, ReminderPatch, ReminderRow, ReminderStatus } from "../types/reminder.js";
@@ -111,9 +112,22 @@ const COLUMN_MAP: Record<keyof ReminderPatch, string> = {
   acknowledgedAt: "acknowledged_at",
 };
 
-export async function update(id: string, patch: ReminderPatch): Promise<Reminder | null> {
+/**
+ * Relê a linha com FOR UPDATE dentro de uma transação. O scheduler decide sobre
+ * este estado, e não sobre o do batch: entre o findDue e a escrita o usuário pode
+ * ter sonecado ou concluído pela notificação.
+ */
+export async function lockById(client: PoolClient, id: string): Promise<Reminder | null> {
+  const result = await client.query<ReminderRow>(
+    "SELECT * FROM reminders WHERE id = $1 FOR UPDATE",
+    [id]
+  );
+  return result.rows[0] ? toReminder(result.rows[0]) : null;
+}
+
+export async function update(id: string, patch: ReminderPatch, db?: Db): Promise<Reminder | null> {
   const { sets, values, nextIndex } = buildUpdateSet(patch, COLUMN_MAP);
-  const row = await updateById<ReminderRow>("reminders", id, sets, values, nextIndex);
+  const row = await updateById<ReminderRow>("reminders", id, sets, values, nextIndex, db);
   return row ? toReminder(row) : null;
 }
 

@@ -1,7 +1,11 @@
 import axios from "axios";
 
+// Base relativa por padrão: em produção o próprio Express serve o SPA e a API na mesma
+// origem (e é o que o service worker assume), e em dev o proxy `/api` do vite.config
+// passa a ser usado — com o antigo fallback `http://localhost:3333` o app ia direto ao
+// backend, e um build sem VITE_API_URL apontava para localhost.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3333",
+  baseURL: import.meta.env.VITE_API_URL || "/",
   timeout: 15000,
 });
 

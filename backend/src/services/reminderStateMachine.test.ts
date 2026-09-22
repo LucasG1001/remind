@@ -67,7 +67,7 @@ describe("initialSchedule", () => {
 describe("decide (com hora)", () => {
   it("pending → pre (aviso de 30 min), incrementa contador", () => {
     const r = makeReminder({ phase: "pending", notifyCount: 0 });
-    const { patch } = decide(r, new Date());
+    const { patch } = decide(r, parseEventAt("2026-06-18", "13:30"));
     expect(patch.phase).toBe("pre");
     expect(patch.notifyCount).toBe(1);
     // próximo disparo é 5 min antes do evento (14:00 → 13:55)
@@ -76,9 +76,23 @@ describe("decide (com hora)", () => {
 
   it("pre → due (aviso de 5 min), dispara no horário do evento", () => {
     const r = makeReminder({ phase: "pre", notifyCount: 1 });
-    const { patch } = decide(r, new Date());
+    const { patch } = decide(r, parseEventAt("2026-06-18", "13:55"));
     expect(patch.phase).toBe("due");
     expect(toSpParts(patch.nextNotifyAt as Date)).toMatchObject({ hour: 14, minute: 0 });
+  });
+
+  it("fora do ar até depois do evento: não manda a contagem de 30 min atrasada", () => {
+    const r = makeReminder({ phase: "pending", notifyCount: 0 });
+    const { message, patch } = decide(r, parseEventAt("2026-06-18", "16:00"));
+    expect(message.title).not.toContain("30 minutos");
+    expect(patch.phase).toBe("nag");
+  });
+
+  it("volta poucos minutos depois do evento: manda o aviso da hora", () => {
+    const r = makeReminder({ phase: "pending", notifyCount: 0 });
+    const { message, patch } = decide(r, parseEventAt("2026-06-18", "14:02"));
+    expect(message.title).toContain("É agora");
+    expect(patch.phase).toBe("at");
   });
 
   it("due → at (no horário), começa o nag", () => {
@@ -226,8 +240,23 @@ describe("finishOccurrence", () => {
       recurAnchorAt: null,
       eventAt: parseEventAt("2026-06-15", "10:00").toISOString(),
     });
-    const patch = finishOccurrence(r, new Date());
+    const patch = finishOccurrence(r, parseEventAt("2026-06-15", "14:00"));
     expect(toSpParts(patch.eventAt as Date)).toMatchObject({ day: 22, hour: 10 });
+  });
+
+  it("fixo abandonado: um único concluir salta a grade até a próxima ocorrência futura", () => {
+    // Âncora segunda 15/06 10:00, semanal; o usuário só volta ao app em 20/07.
+    const r = makeReminder({
+      recurInterval: 1,
+      recurUnit: "week",
+      recurMode: "fixed",
+      recurAnchorAt: parseEventAt("2026-06-15", "10:00").toISOString(),
+      eventAt: parseEventAt("2026-06-15", "10:00").toISOString(),
+    });
+    const patch = finishOccurrence(r, parseEventAt("2026-07-20", "14:00"));
+    // 27/07, não 22/06: sem o catch-up cada concluir devolvia uma data já vencida.
+    expect(toSpParts(patch.eventAt as Date)).toMatchObject({ month: 6, day: 27, hour: 10 });
+    expect(patch.phase).toBe("pending");
   });
 
   it("relativo: avança a partir de now, preservando dia-da-semana e hora da âncora", () => {

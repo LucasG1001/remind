@@ -11,6 +11,12 @@ export interface PushPayload {
    * /api/reminders/<id> — é o contrato de compatibilidade dos avisos de hábito.
    */
   reminderId?: string;
+  /**
+   * `event_at` da ocorrência que gerou este aviso, em ISO. O botão "Concluir" o
+   * devolve para o servidor descartar o clique de uma ocorrência já encerrada — o
+   * push vai para todos os aparelhos e cada um deles pode tocar o mesmo botão.
+   */
+  occurrenceAt?: string;
   kind?: "reminder" | "habit";
   /** Chave de coalescência na fila do serviço de push; vira o header `topic`. */
   collapseKey?: string;
@@ -44,8 +50,23 @@ function ensureConfigured(): boolean {
   return true;
 }
 
+/**
+ * A chave pública só é oferecida quando o par inteiro existe: com uma das três
+ * variáveis em branco o cliente inscrevia o aparelho com sucesso e o usuário via
+ * "notificações ativadas" sem que nenhum push pudesse sair.
+ */
 export function vapidPublicKey(): string | null {
+  if (!ensureConfigured()) return null;
   return process.env.VAPID_PUBLIC_KEY ?? null;
+}
+
+/**
+ * Há canal de entrega agora? O scheduler consulta antes de gastar a fase e a
+ * contagem de avisos de um lembrete que sairia mudo.
+ */
+export async function canDeliverPush(): Promise<boolean> {
+  if (!ensureConfigured()) return false;
+  return (await pushSubscriptionModel.count()) > 0;
 }
 
 /**
@@ -94,11 +115,14 @@ export async function sendPush(payload: PushPayload): Promise<number> {
 
     const { endpoint } = subscriptions[index];
     const status = result.reason instanceof WebPushError ? result.reason.statusCode : null;
-    if (status === 404 || status === 410) {
+    // 403/400 também são definitivos (ex: par VAPID regerado — "credentials
+    // mismatch"): mantidas, essas linhas fariam todo tick tentar endpoints mortos e
+    // `sent` nunca sair de zero. 429 é transitório e não remove.
+    if (status === 404 || status === 410 || status === 403 || status === 400) {
       await pushSubscriptionModel.removeByEndpoint(endpoint);
-      console.warn(`[push] subscription expirada removida (${status}): ${endpoint}`);
+      console.warn(`[push] subscription inválida removida (${status}): ${endpoint.slice(0, 40)}…`);
     } else {
-      console.error(`[push] falha ao enviar para ${endpoint}:`, result.reason);
+      console.error(`[push] falha ao enviar para ${endpoint.slice(0, 40)}…:`, result.reason);
     }
   }
 

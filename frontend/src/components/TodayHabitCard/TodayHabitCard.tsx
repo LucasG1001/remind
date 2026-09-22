@@ -1,4 +1,9 @@
-import { createElement, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  createElement,
+  type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import type { Habit } from "../../types/habit";
 import { getIcon } from "../../utils/iconLibrary";
 import { BellIcon, BellOffIcon, MinusIcon } from "../Icon/icons";
@@ -8,6 +13,17 @@ import styles from "./TodayHabitCard.module.css";
 
 // Acima disto a fileira deixa de ler como checks discretos (a meta vai até 50).
 const MAX_SEGMENTS = 12;
+
+/**
+ * Os botões de check respondem a `pointerup` (o toque repetido de metas > 1 não
+ * pode virar arraste). Teclado e tecnologia assistiva não disparam `pointerup`,
+ * só `click`, e com `detail === 0` — é por onde eles entram, sem duplicar o toque.
+ */
+function keyboardOnly(handler: () => void) {
+  return (event: ReactMouseEvent) => {
+    if (event.detail === 0) handler();
+  };
+}
 
 interface TodayHabitCardProps {
   habit: Habit;
@@ -73,6 +89,7 @@ export function TodayHabitCard({
           aria-pressed={completed}
           aria-label={target > 1 ? `${habit.name} — ${count} de ${target}` : habit.name}
           onPointerUp={onToggle}
+          onClick={keyboardOnly(onToggle)}
         >
           {createElement(getIcon(habit.icon), { className: styles.checkIcon })}
         </button>
@@ -116,6 +133,7 @@ export function TodayHabitCard({
             className={styles.sideButton}
             aria-label={`Voltar um check de ${habit.name}`}
             onPointerUp={onUndo}
+            onClick={keyboardOnly(onUndo)}
           >
             <MinusIcon className={styles.sideIcon} />
           </button>
@@ -133,6 +151,7 @@ export function TodayHabitCard({
             }
             title={`Aviso das ${nextReminderTime}`}
             onPointerUp={onSkipReminder}
+            onClick={keyboardOnly(onSkipReminder)}
           >
             {nextReminderSkipped ? (
               <BellOffIcon className={styles.sideIcon} />

@@ -3,7 +3,12 @@ import { updateById, withTransaction } from "../database/transaction.js";
 import { buildUpdateSet, nextPositionSql } from "../lib/sqlUpdate.js";
 import { spDateKey } from "../lib/dateUtils.js";
 import { nextPendingSlot } from "../services/habitReminderState.js";
-import { CompletionLockedError, ReminderLimitError } from "./errors.js";
+import {
+  CompletionLockedError,
+  DuplicateReminderTimeError,
+  ReminderLimitError,
+  ReorderMismatchError,
+} from "./errors.js";
 import type {
   Habit,
   HabitCompletion,
@@ -119,11 +124,18 @@ export async function create(entry: NewHabit): Promise<Habit> {
 
 export async function reorder(orderedIds: string[]): Promise<Habit[]> {
   await withTransaction(async (client) => {
+    // Ordem parcial deixaria os ausentes com a posição antiga, colidindo com as novas,
+    // e o `ORDER BY position, created_at` passaria a "pular" durante o arraste.
+    const total = await client.query<{ n: string }>("SELECT COUNT(*) AS n FROM habits");
+    if (Number(total.rows[0]!.n) !== orderedIds.length) {
+      throw new ReorderMismatchError("todos os hábitos");
+    }
     for (let i = 0; i < orderedIds.length; i++) {
-      await client.query("UPDATE habits SET position = $1, updated_at = NOW() WHERE id = $2", [
-        i,
-        orderedIds[i],
-      ]);
+      const result = await client.query(
+        "UPDATE habits SET position = $1, updated_at = NOW() WHERE id = $2",
+        [i, orderedIds[i]]
+      );
+      if ((result.rowCount ?? 0) === 0) throw new ReorderMismatchError("todos os hábitos");
     }
   });
   return findAll();
@@ -140,11 +152,9 @@ export async function update(id: string, patch: HabitPatch): Promise<Habit | nul
   const { sets, values, nextIndex } = buildUpdateSet(patch, COLUMN_MAP);
   const row = await updateById<HabitRow>("habits", id, sets, values, nextIndex);
   if (!row) return null;
-  const completions = await pool.query<HabitCompletionRow>(
-    "SELECT habit_id, date, count, locked FROM habit_completions WHERE habit_id = $1",
-    [id]
-  );
-  return toHabit(row, completions.rows);
+  // Releê pelo findById: a resposta precisa levar `reminders` e `nextReminderId`,
+  // porque o cliente troca o item do estado por ela.
+  return findById(id);
 }
 
 export async function remove(id: string): Promise<boolean> {
@@ -219,12 +229,27 @@ export async function addReminder(habitId: string, time: string): Promise<boolea
     // a rejeitar o formulário inteiro por causa de um horário sobrando.
     if (Number(existing.rows[0]!.n) >= target) throw new ReminderLimitError(target);
 
-    await client.query(
+    const inserted = await client.query(
       "INSERT INTO habit_reminders (habit_id, time) VALUES ($1, $2) ON CONFLICT DO NOTHING",
       [habitId, time]
     );
+    // O DO NOTHING respondia 201 sem ter criado nada: o usuário adicionava 08:00 duas
+    // vezes e via sucesso, sem novo horário na lista.
+    if ((inserted.rowCount ?? 0) === 0) throw new DuplicateReminderTimeError(time);
     return true;
   });
+}
+
+/**
+ * Ids dos horários na ordem por `time`. A ordem É a chave que decide se o aviso de
+ * um índice já foi cumprido — não existe coluna de posição, de propósito.
+ */
+export async function reminderSlotIds(habitId: string): Promise<string[]> {
+  const result = await pool.query<{ id: string }>(
+    "SELECT id FROM habit_reminders WHERE habit_id = $1 ORDER BY time",
+    [habitId]
+  );
+  return result.rows.map((row) => row.id);
 }
 
 export async function removeReminder(reminderId: string): Promise<string | null> {
@@ -285,7 +310,13 @@ export async function satisfyReminderSlot(
      RETURNING count`,
     [habitId, date, slotIndex + 1]
   );
-  if (!result.rows[0]) return null;
+  if (!result.rows[0]) {
+    // Sem linha devolvida: ou o dia está travado (o WHERE do ON CONFLICT barrou),
+    // ou o hábito não existe. Distinguir importa — travado é 409, não 404.
+    const existing = await getCompletion(habitId, date);
+    if (existing?.locked) throw new CompletionLockedError();
+    return null;
+  }
   await touchHabit(habitId);
   return result.rows[0].count;
 }

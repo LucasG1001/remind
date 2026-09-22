@@ -9,7 +9,7 @@ import {
 } from "../schemas/habit.js";
 import * as habitModel from "../models/habitModel.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
-import { DATE_RE, parseBody, requireUuid } from "../lib/validation.js";
+import { calendarDateSchema, parseBody, requireUuid } from "../lib/validation.js";
 
 const HABIT_NOT_FOUND = "Hábito não encontrado.";
 const REMINDER_NOT_FOUND = "Horário de aviso não encontrado.";
@@ -61,7 +61,9 @@ export const setCompletion = asyncHandler("Erro ao atualizar conclusão.", async
   const id = String(req.params.id);
   const date = String(req.params.date);
   if (!requireUuid(res, id, HABIT_NOT_FOUND)) return;
-  if (!DATE_RE.test(date)) {
+  // Mesma validação dos corpos: a data vem na URL, mas "2026-02-30" também não pode
+  // virar 02/03 aqui.
+  if (!calendarDateSchema.safeParse(date).success) {
     res.status(400).json({ error: "Data inválida (use YYYY-MM-DD)." });
     return;
   }
@@ -130,7 +132,16 @@ export const completeReminder = asyncHandler("Erro ao concluir o hábito.", asyn
   const body = parseBody(res, reminderCompleteSchema, req.body);
   if (!body) return;
 
-  const count = await habitModel.satisfyReminderSlot(id, body.slotIndex, body.date);
+  // O índice vem do servidor sempre que o payload trouxe o slotId: o índice do push
+  // envelhece, e um índice fora da lista marcaria o dia inteiro como concluído.
+  const slotIds = await habitModel.reminderSlotIds(id);
+  const slotIndex = body.slotId ? slotIds.indexOf(body.slotId) : body.slotIndex;
+  if (slotIndex < 0 || slotIndex >= slotIds.length) {
+    res.status(404).json({ error: REMINDER_NOT_FOUND });
+    return;
+  }
+
+  const count = await habitModel.satisfyReminderSlot(id, slotIndex, body.date);
   if (count === null) {
     res.status(404).json({ error: HABIT_NOT_FOUND });
     return;

@@ -66,6 +66,14 @@
   color: var(--color-text-primary);
 }
 
+.error {
+  margin: 0 0 var(--spacing-md);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+  background: var(--color-error-subtle);
+}
+
 .weekHeader {
   display: grid;
   grid-template-columns: repeat(7, 1fr);

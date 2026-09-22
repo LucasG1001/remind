@@ -25,8 +25,16 @@ export function deleteReminder(id: string): Promise<void> {
   return del(`/api/reminders/${id}`);
 }
 
-export function acknowledgeReminder(id: string): Promise<Reminder> {
-  return post<Reminder>(`/api/reminders/${id}/acknowledge`);
+/**
+ * `occurrenceAt` é o `event_at` que este cliente viu. O servidor descarta o clique
+ * quando a série já andou — sem isso, dois cliques (aqui e na notificação de outro
+ * aparelho) faziam um lembrete semanal saltar duas semanas.
+ */
+export function acknowledgeReminder(id: string, occurrenceAt?: string): Promise<Reminder> {
+  return post<Reminder>(
+    `/api/reminders/${id}/acknowledge`,
+    occurrenceAt ? { occurrenceAt } : undefined
+  );
 }
 
 export function cancelReminder(id: string): Promise<Reminder> {

@@ -16,6 +16,3 @@ export function removeSubscription(endpoint: string): Promise<unknown> {
   return post("/api/push/unsubscribe", { endpoint });
 }
 
-export function sendTestPush(): Promise<{ sent: number }> {
-  return post<{ sent: number }>("/api/push/test");
-}

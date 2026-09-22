@@ -1,10 +1,17 @@
-import { createReminderSchema, updateReminderSchema, rescheduleSchema, snoozeSchema } from "../schemas/reminder.js";
+import {
+  acknowledgeSchema,
+  createReminderSchema,
+  updateReminderSchema,
+  rescheduleSchema,
+  snoozeSchema,
+} from "../schemas/reminder.js";
 import * as reminderModel from "../models/reminderModel.js";
 import { parseEventAt, computeNextOccurrence, isPastEvent, isOnOrAfter, toSpParts, addMinutes } from "../lib/dateUtils.js";
 import { asyncHandler } from "../lib/asyncHandler.js";
 import { parseBody, requireUuid } from "../lib/validation.js";
 import { finishOccurrence, initialSchedule } from "../services/reminderStateMachine.js";
-import type { ReminderStatus } from "../types/reminder.js";
+import type { Response } from "express";
+import type { Reminder, ReminderStatus } from "../types/reminder.js";
 
 const VALID_STATUS: ReminderStatus[] = ["active", "done", "cancelled"];
 
@@ -13,6 +20,19 @@ const PAST_ERROR = "Não é possível agendar para uma data no passado.";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
+/**
+ * `reminderModel.update` devolve null quando a linha sumiu entre o findById e o
+ * UPDATE (outra aba apagou). Responder o null como 200 entrega `null` a um
+ * cliente que espera objeto; aqui isso é 404.
+ */
+function respondUpdated(res: Response, reminder: Reminder | null): void {
+  if (!reminder) {
+    res.status(404).json({ error: NOT_FOUND });
+    return;
+  }
+  res.json(reminder);
+}
+
 function formatSpRef(date: Date, isAllDay: boolean): string {
   const p = toSpParts(date);
   const day = `${pad(p.day)}/${pad(p.month + 1)}/${p.year}`;
@@ -20,9 +40,15 @@ function formatSpRef(date: Date, isAllDay: boolean): string {
 }
 
 export const getAll = asyncHandler("Erro ao buscar lembretes.", async (req, res) => {
-  const status = req.query.status as string | undefined;
-  const filter = status && VALID_STATUS.includes(status as ReminderStatus) ? (status as ReminderStatus) : undefined;
-  const reminders = await reminderModel.findAll(filter);
+  // O cast para string era mentira (no Express 5 a query pode vir array) e um valor
+  // desconhecido caía no `undefined`: `?status=activo` devolvia **todos** os lembretes,
+  // cancelados inclusive, com 200.
+  const raw = req.query.status;
+  if (raw !== undefined && (typeof raw !== "string" || !VALID_STATUS.includes(raw as ReminderStatus))) {
+    res.status(400).json({ error: "Filtro de status inválido." });
+    return;
+  }
+  const reminders = await reminderModel.findAll(raw as ReminderStatus | undefined);
   res.json(reminders);
 });
 
@@ -80,7 +106,11 @@ export const update = asyncHandler("Erro ao atualizar lembrete.", async (req, re
   const isAllDay = !body.time;
   const eventAt = parseEventAt(body.date, body.time ?? null);
   const now = new Date();
-  if (isPastEvent(eventAt, isAllDay, now)) {
+  // "Não agende no passado" vale para mudança de horário, não para corrigir o
+  // título de um lembrete já atrasado: se o agendamento não mudou, deixa passar.
+  const scheduleChanged =
+    eventAt.getTime() !== new Date(existing.eventAt).getTime() || isAllDay !== existing.isAllDay;
+  if (scheduleChanged && isPastEvent(eventAt, isAllDay, now)) {
     res.status(400).json({ error: PAST_ERROR });
     return;
   }
@@ -106,7 +136,7 @@ export const update = asyncHandler("Erro ao atualizar lembrete.", async (req, re
     acknowledged: false,
     acknowledgedAt: null,
   });
-  res.json(reminder);
+  respondUpdated(res, reminder);
 });
 
 export const reschedule = asyncHandler("Erro ao remarcar lembrete.", async (req, res) => {
@@ -119,6 +149,10 @@ export const reschedule = asyncHandler("Erro ao remarcar lembrete.", async (req,
   }
   const body = parseBody(res, rescheduleSchema, req.body);
   if (!body) return;
+  if (existing.status !== "active") {
+    res.status(400).json({ error: "Só é possível remarcar um lembrete ativo." });
+    return;
+  }
   // Remarcar move só esta ocorrência: preserva o tipo e a regra/âncora da série.
   if (!existing.isAllDay && !body.time) {
     res.status(400).json({ error: "Informe a hora para remarcar este lembrete." });
@@ -156,7 +190,7 @@ export const reschedule = asyncHandler("Erro ao remarcar lembrete.", async (req,
     acknowledged: false,
     acknowledgedAt: null,
   });
-  res.json(reminder);
+  respondUpdated(res, reminder);
 });
 
 export const remove = asyncHandler("Erro ao remover lembrete.", async (req, res) => {
@@ -178,6 +212,25 @@ export const acknowledge = asyncHandler("Erro ao confirmar lembrete.", async (re
     res.status(404).json({ error: NOT_FOUND });
     return;
   }
+  const body = parseBody(res, acknowledgeSchema, req.body ?? {});
+  if (!body) return;
+  if (reminder.status !== "active") {
+    res.status(400).json({ error: "Só é possível concluir um lembrete ativo." });
+    return;
+  }
+  if (body.occurrenceAt) {
+    const seen = new Date(body.occurrenceAt).getTime();
+    if (Number.isNaN(seen)) {
+      res.status(400).json({ error: "Ocorrência inválida." });
+      return;
+    }
+    // A série já andou: este clique é de uma ocorrência encerrada (outro aparelho, ou
+    // duplo toque). Devolve o estado atual em vez de avançar a série outra vez.
+    if (seen !== new Date(reminder.eventAt).getTime()) {
+      res.json(reminder);
+      return;
+    }
+  }
   const now = new Date();
   const patch = finishOccurrence(reminder, now);
   if (patch.status === "done") {
@@ -185,7 +238,7 @@ export const acknowledge = asyncHandler("Erro ao confirmar lembrete.", async (re
     patch.acknowledgedAt = now;
   }
   const updated = await reminderModel.update(reminder.id, patch);
-  res.json(updated);
+  respondUpdated(res, updated);
 });
 
 export const snooze = asyncHandler("Erro ao adiar lembrete.", async (req, res) => {
@@ -210,7 +263,7 @@ export const snooze = asyncHandler("Erro ao adiar lembrete.", async (req, res) =
     nextNotifyAt: addMinutes(new Date(), body.minutes),
     notifyCount: 0,
   });
-  res.json(reminder);
+  respondUpdated(res, reminder);
 });
 
 export const cancel = asyncHandler("Erro ao cancelar lembrete.", async (req, res) => {
@@ -222,5 +275,5 @@ export const cancel = asyncHandler("Erro ao cancelar lembrete.", async (req, res
     return;
   }
   const updated = await reminderModel.update(reminder.id, { status: "cancelled", nextNotifyAt: null });
-  res.json(updated);
+  respondUpdated(res, updated);
 });

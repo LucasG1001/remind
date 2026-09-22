@@ -17,5 +17,6 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 export function findNavItem(pathname: string): NavItem {
-  return NAV_ITEMS.find((item) => pathname.startsWith(item.path)) ?? NAV_ITEMS[0];
+  // NAV_ITEMS é uma lista literal e não-vazia.
+  return NAV_ITEMS.find((item) => pathname.startsWith(item.path)) ?? NAV_ITEMS[0]!;
 }

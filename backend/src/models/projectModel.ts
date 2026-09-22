@@ -1,7 +1,7 @@
 import { pool } from "../database/connection.js";
 import { updateById, withTransaction } from "../database/transaction.js";
 import { buildUpdateSet, nextPositionSql } from "../lib/sqlUpdate.js";
-import { DomainError } from "./errors.js";
+import { DomainError, ReorderMismatchError } from "./errors.js";
 import type {
   BoardList,
   BoardListRow,
@@ -197,11 +197,20 @@ export async function removeList(id: string): Promise<boolean> {
 
 export async function reorderLists(projectId: string, orderedIds: string[]): Promise<ProjectBoard | null> {
   await withTransaction(async (client) => {
+    // Mesma razão do reorder de hábitos: ordem parcial colide as posições.
+    const total = await client.query<{ n: string }>(
+      "SELECT COUNT(*) AS n FROM board_lists WHERE project_id = $1",
+      [projectId]
+    );
+    if (Number(total.rows[0]!.n) !== orderedIds.length) {
+      throw new ReorderMismatchError("todas as listas do quadro");
+    }
     for (let i = 0; i < orderedIds.length; i++) {
-      await client.query(
+      const result = await client.query(
         "UPDATE board_lists SET position = $1, updated_at = NOW() WHERE id = $2 AND project_id = $3",
         [i, orderedIds[i], projectId]
       );
+      if ((result.rowCount ?? 0) === 0) throw new ReorderMismatchError("todas as listas do quadro");
     }
   });
   return findBoard(projectId);

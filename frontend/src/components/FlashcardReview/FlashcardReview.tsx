@@ -29,6 +29,12 @@ export function FlashcardReview({ categories, onReview }: FlashcardReviewProps) 
 
   const [category, setCategory] = useState<string>(ALL);
   const [queue, setQueue] = useState<string[]>([]);
+  /**
+   * Tamanho da sessão, fixado no início. A `queue` cresce a cada erro (o card volta
+   * para o fim), então usá-la como total fazia "Card 3 / 7" virar "3 / 8" e a barra
+   * de progresso andar para trás.
+   */
+  const [sessionSize, setSessionSize] = useState(0);
   const [pos, setPos] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [correct, setCorrect] = useState(0);
@@ -40,6 +46,7 @@ export function FlashcardReview({ categories, onReview }: FlashcardReviewProps) 
       .then((cards) => {
         setDue(cards);
         setQueue(shuffle(cards.map((c) => c.id)));
+        setSessionSize(cards.length);
       })
       .catch(() => setError("Não foi possível carregar a sessão de estudo."))
       .finally(() => setLoading(false));
@@ -53,6 +60,8 @@ export function FlashcardReview({ categories, onReview }: FlashcardReviewProps) 
       gradedRef.current = new Set();
       setCategory(cat);
       setQueue(shuffle(ids));
+      setSessionSize(ids.length);
+      setError(null);
       setPos(0);
       setFlipped(false);
       setCorrect(0);
@@ -72,9 +81,13 @@ export function FlashcardReview({ categories, onReview }: FlashcardReviewProps) 
       if (!currentId) return;
       if (!gradedRef.current.has(currentId)) {
         gradedRef.current.add(currentId);
-        onReview(currentId, ok).catch((err) =>
-          setError(apiErrorMessage(err, "Não foi possível registrar a resposta."))
-        );
+        onReview(currentId, ok)
+          // Limpa no sucesso: uma falha de gravação deixava a linha vermelha na tela
+          // pelo resto da sessão.
+          .then(() => setError(null))
+          .catch((err) =>
+            setError(apiErrorMessage(err, "Não foi possível registrar a resposta."))
+          );
       }
       if (ok) {
         setCorrect((c) => c + 1);
@@ -92,6 +105,10 @@ export function FlashcardReview({ categories, onReview }: FlashcardReviewProps) 
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null;
       if (target && /INPUT|TEXTAREA/.test(target.tagName)) return;
+      // O listener é global, mas os modais (form de card, categorias, calendário) vivem
+      // em outro ramo da árvore: sem esta guarda, Space virava o card atrás do modal e
+      // Enter submetia o formulário **e** virava o card.
+      if (document.querySelector('[aria-modal="true"]')) return;
       if (!currentId) return;
       if (e.code === "Space" || e.code === "Enter") {
         e.preventDefault();
@@ -126,10 +143,11 @@ export function FlashcardReview({ categories, onReview }: FlashcardReviewProps) 
     })),
   ];
 
-  const total = queue.length;
+  const total = sessionSize;
   const answered = correct + wrong;
   const accuracy = answered ? Math.round((correct / answered) * 100) : 0;
-  const progress = total ? Math.round((pos / total) * 100) : 0;
+  // `pos` passa de `total` quando um card errado volta para a fila: clampa em 100%.
+  const progress = total ? Math.round((Math.min(pos, total) / total) * 100) : 0;
 
   return (
     <div className={styles.session}>

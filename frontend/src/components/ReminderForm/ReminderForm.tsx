@@ -9,6 +9,7 @@ import {
 } from "../../services/reminderService";
 import type { RecurMode, RecurUnit, ReminderInput } from "../../types/reminder";
 import { toFormParts, spInstant } from "../../utils/format";
+import { apiErrorMessage } from "../../utils/apiError";
 import { WEEKDAYS_PT } from "../../utils/weekdays";
 import { ChevronIcon } from "../Icon/icons";
 import { Modal } from "../Modal/Modal";
@@ -52,6 +53,8 @@ export function ReminderForm() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+  /** Agendamento como veio do servidor, para saber se o usuário mexeu nele. */
+  const loadedScheduleRef = useRef<{ date: string; time: string; allDay: boolean } | null>(null);
 
   const close = () => navigate("/lembretes");
 
@@ -67,10 +70,18 @@ export function ReminderForm() {
         if (!active) return;
         if (action === "cancel") {
           if (window.confirm(`Cancelar "${r.title}"?`)) {
-            cancelReminder(r.id).finally(() => {
-              reload();
-              navigate("/lembretes");
-            });
+            // `.finally` também roda na rejeição: fechava o modal como sucesso com o
+            // lembrete intacto no servidor.
+            cancelReminder(r.id)
+              .then(() => {
+                reload();
+                navigate("/lembretes");
+              })
+              .catch((err) => {
+                if (!active) return;
+                setError(apiErrorMessage(err, "Não foi possível cancelar o lembrete."));
+                setLoading(false);
+              });
           } else {
             navigate("/lembretes");
           }
@@ -82,6 +93,11 @@ export function ReminderForm() {
         setDate(parts.date);
         setTime(r.isAllDay ? "" : parts.time);
         setAllDay(r.isAllDay);
+        loadedScheduleRef.current = {
+          date: parts.date,
+          time: r.isAllDay ? "" : parts.time,
+          allDay: r.isAllDay,
+        };
         setRepeats(Boolean(r.recurInterval));
         setRecurInterval(r.recurInterval ?? 1);
         setRecurUnit(r.recurUnit ?? "month");
@@ -117,11 +133,18 @@ export function ReminderForm() {
       return;
     }
 
-    const todaySp = toFormParts(new Date().toISOString()).date;
-    const isPast = allDay ? date < todaySp : spInstant(date, time) < Math.floor(Date.now() / 60000) * 60000;
-    if (isPast) {
-      setError("Não é possível agendar para uma data no passado.");
-      return;
+    // Só barra o passado quando o usuário mexeu no agendamento: senão era impossível
+    // corrigir o título de um lembrete já atrasado sem também remarcar a data.
+    const loaded = loadedScheduleRef.current;
+    const scheduleChanged =
+      !loaded || date !== loaded.date || allDay !== loaded.allDay || (!allDay && time !== loaded.time);
+    if (scheduleChanged) {
+      const todaySp = toFormParts(new Date().toISOString()).date;
+      const isPast = allDay ? date < todaySp : spInstant(date, time) < Math.floor(Date.now() / 60000) * 60000;
+      if (isPast) {
+        setError("Não é possível agendar para uma data no passado.");
+        return;
+      }
     }
 
     // Remarcar de recorrente fixo: não pode passar do próximo agendamento.

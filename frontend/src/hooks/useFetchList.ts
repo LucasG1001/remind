@@ -24,7 +24,11 @@ export function useFetchList<T>(fetcher: () => Promise<T[]>, errorMessage: strin
     let active = true;
     fetcherRef.current()
       .then((data) => {
-        if (active) setItems(data);
+        if (!active) return;
+        setItems(data);
+        // Limpa no sucesso: uma falha transitória deixava a faixa vermelha na tela
+        // para sempre, mesmo com a lista já carregada depois.
+        setError(null);
       })
       .catch(() => {
         if (active) setError(errorMessage);

@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 type OutsideRef = RefObject<HTMLElement | null>;
 
@@ -8,26 +8,38 @@ export function useDismiss(
   active = true
 ): void {
   const refs = outside ? (Array.isArray(outside) ? outside : [outside]) : [];
+  const hasOutside = refs.length > 0;
+
+  // Callback e refs entram por ref, e as deps do efeito passam a ter tamanho constante:
+  // `[...refs]` mudava de tamanho entre renders (o React avisa e a reassinatura fica
+  // imprevisível), e `onDismiss` é quase sempre arrow inline, o que removia e
+  // readicionava o listener de teclado em **todo** render.
+  const dismissRef = useRef(onDismiss);
+  const refsRef = useRef(refs);
+  useEffect(() => {
+    dismissRef.current = onDismiss;
+    refsRef.current = refs;
+  });
 
   useEffect(() => {
     if (!active) return;
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onDismiss();
+      if (e.key === "Escape") dismissRef.current();
     };
     const onPointerDown = (e: PointerEvent) => {
       const target = e.target as Node;
-      const inside = refs.some((ref) => ref.current?.contains(target));
-      const mounted = refs.some((ref) => ref.current);
-      if (mounted && !inside) onDismiss();
+      const current = refsRef.current;
+      const inside = current.some((ref) => ref.current?.contains(target));
+      const mounted = current.some((ref) => ref.current);
+      if (mounted && !inside) dismissRef.current();
     };
 
     document.addEventListener("keydown", onKey);
-    if (refs.length) document.addEventListener("pointerdown", onPointerDown);
+    if (hasOutside) document.addEventListener("pointerdown", onPointerDown);
     return () => {
       document.removeEventListener("keydown", onKey);
-      if (refs.length) document.removeEventListener("pointerdown", onPointerDown);
+      if (hasOutside) document.removeEventListener("pointerdown", onPointerDown);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onDismiss, active, refs.length, ...refs]);
+  }, [active, hasOutside]);
 }

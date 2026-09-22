@@ -78,9 +78,16 @@ export function TodayColumn({ habits, onToggle, onSkipReminder, onEdit, onReorde
   const scrollerRef = useRef<Element | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
 
-  // A aba inativa é desmontada no mobile: sem isto, desmontar no meio de um
-  // arraste vaza os listeners de janela e o rAF.
-  useEffect(() => () => cleanupRef.current?.(), []);
+  // A aba inativa é desmontada no mobile: sem isto, desmontar no meio de um arraste
+  // vaza os listeners de janela, o rAF e o timer de toque longo (que chamaria
+  // startDrag num componente já morto).
+  useEffect(
+    () => () => {
+      if (pressTimerRef.current !== null) clearTimeout(pressTimerRef.current);
+      cleanupRef.current?.();
+    },
+    []
+  );
 
   const clearPress = () => {
     if (pressTimerRef.current !== null) {
