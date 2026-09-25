@@ -22,6 +22,8 @@ export interface Habit {
   icon: string;
   selectedDays: DayOfWeek[];
   targetCount: number;
+  /** Duração de uma sessão com timer; null = só check. */
+  durationMinutes: number | null;
   completions: HabitCompletion[];
   reminders: HabitReminder[];
   /** Resolvido no servidor: o horário que o botão de sino desliga. */
@@ -39,4 +41,5 @@ export interface HabitFormData {
   icon: string;
   selectedDays: DayOfWeek[];
   targetCount: number;
+  durationMinutes: number | null;
 }

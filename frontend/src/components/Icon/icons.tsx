@@ -156,3 +156,20 @@ export function TrashIcon({ className }: IconProps) {
     </Icon>
   );
 }
+
+export function PlayIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M7 4.5v15l12-7.5z" />
+    </Icon>
+  );
+}
+
+export function PauseIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M9 5v14" />
+      <path d="M15 5v14" />
+    </Icon>
+  );
+}

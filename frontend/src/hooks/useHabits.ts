@@ -120,6 +120,12 @@ export function useHabits(): UseHabitsReturn {
     return () => navigator.serviceWorker.removeEventListener("message", onMessage);
   }, [reload]);
 
+  // O fim de um timer registra o check pelo HabitTimerProvider, fora deste hook.
+  useEffect(() => {
+    window.addEventListener("habit-updated", reload);
+    return () => window.removeEventListener("habit-updated", reload);
+  }, [reload]);
+
   function replace(updated: Habit): void {
     setHabits((prev) => prev.map((h) => (h.id === updated.id ? recalculateHabitStats(updated) : h)));
   }

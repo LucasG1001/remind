@@ -6,6 +6,7 @@ import {
   update,
   remove,
   setCompletion,
+  incrementCompletion,
   addReminder,
   removeReminder,
   skipReminder,
@@ -25,6 +26,7 @@ router.post("/reminders/:reminderId/skip", skipReminder);
 router.put("/:id", update);
 router.delete("/:id", remove);
 router.patch("/:id/completion/:date", setCompletion);
+router.post("/:id/completion/:date/increment", incrementCompletion);
 router.post("/:id/reminders", addReminder);
 router.post("/:id/reminders/complete", completeReminder);
 

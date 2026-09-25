@@ -25,6 +25,8 @@ const COLLAPSED_ICONS = 6;
 const MIN_TARGET = 1;
 const MAX_TARGET = 50;
 const CLOSE_DRAG_PX = 90;
+const DURATION_STEP = 5;
+const MAX_DURATION = 600;
 
 export function HabitForm({
   mode,
@@ -42,6 +44,9 @@ export function HabitForm({
   const [icon, setIcon] = useState(initialData?.icon ?? DEFAULT_ICON_KEY);
   const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>(initialData?.selectedDays ?? []);
   const [targetCount, setTargetCount] = useState(initialData?.targetCount ?? MIN_TARGET);
+  const [durationMinutes, setDurationMinutes] = useState<number | null>(
+    initialData?.durationMinutes ?? null
+  );
   const [daysError, setDaysError] = useState("");
   const [iconsExpanded, setIconsExpanded] = useState(
     () => ICON_LIBRARY.findIndex((entry) => entry.key === (initialData?.icon ?? "")) >= COLLAPSED_ICONS
@@ -84,7 +89,23 @@ export function HabitForm({
       setDaysError("Selecione pelo menos um dia");
       return;
     }
-    onSave({ name: name.trim(), icon, selectedDays, targetCount }, pendingTimes);
+    onSave({ name: name.trim(), icon, selectedDays, targetCount, durationMinutes }, pendingTimes);
+  }
+
+  // Descer do primeiro passo desliga o timer; subir do desligado liga no primeiro passo.
+  function stepDuration(direction: 1 | -1) {
+    setDurationMinutes((current) => {
+      if (current === null) return direction > 0 ? DURATION_STEP : null;
+      const next = direction > 0
+        ? Math.floor(current / DURATION_STEP) * DURATION_STEP + DURATION_STEP
+        : Math.ceil(current / DURATION_STEP) * DURATION_STEP - DURATION_STEP;
+      return next <= 0 ? null : Math.min(MAX_DURATION, next);
+    });
+  }
+
+  function handleDurationInput(raw: string) {
+    const value = Number.parseInt(raw, 10);
+    setDurationMinutes(Number.isNaN(value) || value <= 0 ? null : Math.min(MAX_DURATION, value));
   }
 
   function handleDaysChange(days: DayOfWeek[]) {
@@ -282,6 +303,48 @@ export function HabitForm({
               onClick={() => setTargetCount((n) => Math.min(MAX_TARGET, n + 1))}
               disabled={targetCount >= MAX_TARGET}
               aria-label="Aumentar vezes por dia"
+            >
+              <PlusIcon className={styles.stepperIcon} />
+            </button>
+          </span>
+        </div>
+
+        <div className={styles.targetRow}>
+          <span className={styles.targetText}>
+            <span className={styles.targetLabel}>Duração</span>
+            <span className={styles.targetHelp}>
+              {durationMinutes === null
+                ? "sem timer — só check"
+                : "minutos; cada sessão cronometrada vale 1 check"}
+            </span>
+          </span>
+          <span className={styles.stepper}>
+            <button
+              type="button"
+              className={styles.stepperButton}
+              onClick={() => stepDuration(-1)}
+              disabled={durationMinutes === null}
+              aria-label="Diminuir duração"
+            >
+              <MinusIcon className={styles.stepperIcon} />
+            </button>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={MAX_DURATION}
+              className={styles.durationInput}
+              value={durationMinutes ?? ""}
+              placeholder="—"
+              onChange={(e) => handleDurationInput(e.target.value)}
+              aria-label="Duração em minutos"
+            />
+            <button
+              type="button"
+              className={`${styles.stepperButton} ${styles.stepperPlus}`}
+              onClick={() => stepDuration(1)}
+              disabled={(durationMinutes ?? 0) >= MAX_DURATION}
+              aria-label="Aumentar duração"
             >
               <PlusIcon className={styles.stepperIcon} />
             </button>

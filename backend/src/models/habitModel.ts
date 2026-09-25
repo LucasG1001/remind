@@ -70,6 +70,7 @@ function toHabit(
     icon: row.icon,
     selectedDays: row.selected_days,
     targetCount: row.target_count,
+    durationMinutes: row.duration_minutes,
     completions,
     reminders,
     nextReminderId: next?.slot.id ?? null,
@@ -114,10 +115,10 @@ export async function findById(id: string): Promise<Habit | null> {
 
 export async function create(entry: NewHabit): Promise<Habit> {
   const result = await pool.query<HabitRow>(
-    `INSERT INTO habits (name, selected_days, icon, target_count, position)
-     VALUES ($1, $2, $3, $4, ${nextPositionSql("habits")})
+    `INSERT INTO habits (name, selected_days, icon, target_count, duration_minutes, position)
+     VALUES ($1, $2, $3, $4, $5, ${nextPositionSql("habits")})
      RETURNING *`,
-    [entry.name, entry.selectedDays, entry.icon, entry.targetCount]
+    [entry.name, entry.selectedDays, entry.icon, entry.targetCount, entry.durationMinutes]
   );
   return toHabit(result.rows[0]!, []);
 }
@@ -146,6 +147,7 @@ const COLUMN_MAP: Record<keyof HabitPatch, string> = {
   icon: "icon",
   selectedDays: "selected_days",
   targetCount: "target_count",
+  durationMinutes: "duration_minutes",
 };
 
 export async function update(id: string, patch: HabitPatch): Promise<Habit | null> {
@@ -193,6 +195,34 @@ export async function setCompletionCount(habitId: string, date: string, count: n
   }
 
   await touchHabit(habitId);
+}
+
+/**
+ * +1 atômico para a sessão de timer: o PATCH grava contagem absoluta, e o cliente
+ * somando sobre um estado velho (outra aba, outro aparelho) perderia um check.
+ */
+export async function incrementCompletion(habitId: string, date: string): Promise<boolean> {
+  const result = await pool.query(
+    `INSERT INTO habit_completions (habit_id, date, count, locked)
+     SELECT $1, $2, 1, FALSE
+     FROM habits h WHERE h.id = $1
+     ON CONFLICT (habit_id, date) DO UPDATE
+       SET count = LEAST(
+         habit_completions.count + 1,
+         (SELECT target_count FROM habits WHERE id = $1)
+       )
+       WHERE NOT habit_completions.locked`,
+    [habitId, date]
+  );
+
+  if ((result.rowCount ?? 0) === 0) {
+    const existing = await getCompletion(habitId, date);
+    if (existing?.locked) throw new CompletionLockedError();
+    return existing !== null;
+  }
+
+  await touchHabit(habitId);
+  return true;
 }
 
 export async function clearCompletion(habitId: string, date: string): Promise<void> {

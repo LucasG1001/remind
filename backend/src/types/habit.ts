@@ -21,6 +21,8 @@ export interface Habit {
   icon: string;
   selectedDays: number[];
   targetCount: number;
+  /** Duração de uma sessão com timer; null = hábito só de check. */
+  durationMinutes: number | null;
   completions: HabitCompletion[];
   reminders: HabitReminder[];
   /** Horário que o app oferece para desligar; resolvido no servidor. */
@@ -43,6 +45,7 @@ export interface HabitRow {
   icon: string;
   selected_days: number[];
   target_count: number;
+  duration_minutes: number | null;
   position: number;
   created_at: string;
   updated_at: string;
@@ -60,6 +63,7 @@ export interface NewHabit {
   icon: string;
   selectedDays: number[];
   targetCount: number;
+  durationMinutes: number | null;
 }
 
 export interface HabitPatch {
@@ -67,4 +71,5 @@ export interface HabitPatch {
   icon?: string;
   selectedDays?: number[];
   targetCount?: number;
+  durationMinutes?: number | null;
 }

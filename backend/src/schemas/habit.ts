@@ -7,6 +7,13 @@ const targetCount = z
   .min(1, "Meta mínima é 1.")
   .max(50, "Meta máxima é 50.");
 
+const durationMinutes = z
+  .number({ error: "Informe a duração em minutos." })
+  .int()
+  .min(1, "Duração mínima é 1 minuto.")
+  .max(600, "Duração máxima é 600 minutos.")
+  .nullable();
+
 const baseHabit = z.object({
   name: z.string().min(1, "Informe um nome.").max(200),
   icon: z.string().min(1, "Escolha um ícone.").max(16),
@@ -15,11 +22,15 @@ const baseHabit = z.object({
     .min(1, "Escolha ao menos um dia."),
 });
 
-export const createHabitSchema = baseHabit.extend({ targetCount: targetCount.default(1) });
+export const createHabitSchema = baseHabit.extend({
+  targetCount: targetCount.default(1),
+  durationMinutes: durationMinutes.default(null),
+});
 
 // Sem `.default` no update: o PUT é substituição total, e um corpo sem targetCount
 // rebaixaria a meta para 1 em silêncio — o que desativa horários e reescreve o heatmap.
-export const updateHabitSchema = baseHabit.extend({ targetCount });
+// O mesmo vale para durationMinutes, que apagaria o timer.
+export const updateHabitSchema = baseHabit.extend({ targetCount, durationMinutes });
 
 export const completionCountSchema = z.object({
   count: z.number().int().min(0, "Contagem inválida."),

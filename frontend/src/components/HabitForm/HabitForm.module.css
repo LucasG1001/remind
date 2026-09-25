@@ -268,6 +268,34 @@
   font-weight: var(--font-weight-bold);
 }
 
+.durationInput {
+  width: 48px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+}
+
+.durationInput::-webkit-inner-spin-button,
+.durationInput::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.durationInput::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.durationInput:focus {
+  outline: none;
+  border-bottom: 1px solid var(--color-accent);
+}
+
 .formError {
   color: var(--color-error);
   background: var(--color-error-subtle);

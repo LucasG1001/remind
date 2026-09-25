@@ -219,6 +219,7 @@ export function HabitsPage() {
                   icon: editing.icon,
                   selectedDays: editing.selectedDays,
                   targetCount: editing.targetCount,
+                  durationMinutes: editing.durationMinutes,
                 }
               : undefined
           }

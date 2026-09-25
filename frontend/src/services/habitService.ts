@@ -36,3 +36,8 @@ export function skipHabitReminder(reminderId: string, date: string, skipped: boo
 export function setHabitCompletion(habitId: string, date: string, count: number): Promise<Habit> {
   return patch<Habit>(`/api/habits/${habitId}/completion/${date}`, { count });
 }
+
+/** Fim de uma sessão de timer: +1 atômico no servidor, sem passar da meta. */
+export function incrementHabitCompletion(habitId: string, date: string): Promise<Habit> {
+  return post<Habit>(`/api/habits/${habitId}/completion/${date}/increment`);
+}

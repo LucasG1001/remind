@@ -6,7 +6,9 @@ import {
 } from "react";
 import type { Habit } from "../../types/habit";
 import { getIcon } from "../../utils/iconLibrary";
-import { BellIcon, BellOffIcon, MinusIcon } from "../Icon/icons";
+import { BellIcon, BellOffIcon, CloseIcon, MinusIcon, PauseIcon, PlayIcon } from "../Icon/icons";
+import { useHabitTimer } from "../../context/useHabitTimer";
+import { formatRemaining } from "../../utils/habitTimer";
 import { getLevelColor } from "../../utils/levelUtils";
 import { LevelStrip } from "../LevelStrip/LevelStrip";
 import styles from "./TodayHabitCard.module.css";
@@ -62,6 +64,14 @@ export function TodayHabitCard({
   onPointerCancel,
 }: TodayHabitCardProps) {
   const partial = count > 0 && !completed;
+  const timerCtx = useHabitTimer();
+  const hasTimer = habit.durationMinutes !== null;
+  const timer = timerCtx.timer?.habitId === habit.id ? timerCtx.timer : null;
+  const ringing = timerCtx.ringing?.habitId === habit.id;
+  const paused = timer?.pausedAt != null;
+  // Com a sessão em curso a fileira ganha dois botões: o nível e o "−" saem para
+  // o nome e o tempo caberem na coluna de 330px.
+  const timerBusy = timer !== null || ringing;
 
   return (
     <li
@@ -97,9 +107,18 @@ export function TodayHabitCard({
         <span className={styles.text}>
           <span className={styles.name}>{habit.name}</span>
           {/* O aria-label do botão já anuncia "N de M": a faixa é só visual. */}
-          {target > 1 && (
+          {(target > 1 || hasTimer) && (
             <span className={styles.caption}>
-              {target <= MAX_SEGMENTS ? (
+              {hasTimer && (
+                <span className={`${styles.timer} ${timer || ringing ? styles.timerActive : ""}`}>
+                  {ringing
+                    ? "Acabou!"
+                    : timer
+                      ? `${formatRemaining(timerCtx.remaining)}${paused ? " · pausado" : ""}`
+                      : `${habit.durationMinutes} min`}
+                </span>
+              )}
+              {target <= 1 ? null : target <= MAX_SEGMENTS ? (
                 <span
                   className={styles.dayStrip}
                   style={{ "--checks": target } as CSSProperties}
@@ -126,7 +145,56 @@ export function TodayHabitCard({
           )}
         </span>
 
-        {count > 0 && (
+        {ringing ? (
+          <button
+            type="button"
+            data-role="habit-check"
+            className={styles.stopButton}
+            onPointerUp={timerCtx.stopRinging}
+            onClick={keyboardOnly(timerCtx.stopRinging)}
+          >
+            Parar
+          </button>
+        ) : timer ? (
+          <>
+            <button
+              type="button"
+              data-role="habit-check"
+              className={styles.sideButton}
+              aria-label={`Cancelar o timer de ${habit.name}`}
+              onPointerUp={timerCtx.cancel}
+              onClick={keyboardOnly(timerCtx.cancel)}
+            >
+              <CloseIcon className={styles.sideIcon} />
+            </button>
+            <button
+              type="button"
+              data-role="habit-check"
+              className={`${styles.sideButton} ${styles.sideButtonOff}`}
+              aria-label={paused ? `Retomar o timer de ${habit.name}` : `Pausar o timer de ${habit.name}`}
+              onPointerUp={paused ? timerCtx.resume : timerCtx.pause}
+              onClick={keyboardOnly(paused ? timerCtx.resume : timerCtx.pause)}
+            >
+              {paused ? <PlayIcon className={styles.sideIcon} /> : <PauseIcon className={styles.sideIcon} />}
+            </button>
+          </>
+        ) : (
+          hasTimer &&
+          !completed && (
+            <button
+              type="button"
+              data-role="habit-check"
+              className={styles.sideButton}
+              aria-label={`Iniciar ${habit.durationMinutes} min de ${habit.name}`}
+              onPointerUp={() => timerCtx.start(habit)}
+              onClick={keyboardOnly(() => timerCtx.start(habit))}
+            >
+              <PlayIcon className={styles.sideIcon} />
+            </button>
+          )
+        )}
+
+        {count > 0 && !timerBusy && (
           <button
             type="button"
             data-role="habit-check"
@@ -161,9 +229,11 @@ export function TodayHabitCard({
           </button>
         )}
 
-        <span className={styles.level} style={{ color: getLevelColor(habit.level) }}>
-          Nv {habit.level}
-        </span>
+        {!timerBusy && (
+          <span className={styles.level} style={{ color: getLevelColor(habit.level) }}>
+            Nv {habit.level}
+          </span>
+        )}
       </div>
 
       <div className={styles.strip}>

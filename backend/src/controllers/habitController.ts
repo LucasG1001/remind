@@ -85,6 +85,25 @@ export const setCompletion = asyncHandler("Erro ao atualizar conclusão.", async
   res.json(habit);
 });
 
+/** Fim de uma sessão de timer: soma um check sem passar da meta. */
+export const incrementCompletion = asyncHandler("Erro ao registrar a sessão.", async (req, res) => {
+  const id = String(req.params.id);
+  const date = String(req.params.date);
+  if (!requireUuid(res, id, HABIT_NOT_FOUND)) return;
+  if (!calendarDateSchema.safeParse(date).success) {
+    res.status(400).json({ error: "Data inválida (use YYYY-MM-DD)." });
+    return;
+  }
+
+  const found = await habitModel.incrementCompletion(id, date);
+  const habit = found ? await habitModel.findById(id) : null;
+  if (!habit) {
+    res.status(404).json({ error: HABIT_NOT_FOUND });
+    return;
+  }
+  res.json(habit);
+});
+
 export const addReminder = asyncHandler("Erro ao adicionar horário.", async (req, res) => {
   const id = String(req.params.id);
   if (!requireUuid(res, id, HABIT_NOT_FOUND)) return;

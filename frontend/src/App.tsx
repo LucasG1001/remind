@@ -8,6 +8,7 @@ import { ProjectsPage } from "./pages/ProjectsPage/ProjectsPage";
 import { FlashcardsPage } from "./pages/FlashcardsPage/FlashcardsPage";
 import { CalendarProvider } from "./context/CalendarContext";
 import { HeaderSlotProvider } from "./context/HeaderSlotContext";
+import { HabitTimerProvider } from "./context/HabitTimerContext";
 import styles from "./App.module.css";
 
 function App() {
@@ -15,22 +16,24 @@ function App() {
     <BrowserRouter>
       <CalendarProvider>
         <HeaderSlotProvider>
-          <div className={styles.layout}>
-            <TopNav />
-            <main className={styles.content}>
-              <Routes>
-                <Route path="/" element={<Navigate to="/lembretes" replace />} />
-                <Route path="/inicio" element={<DashboardPage />} />
-                <Route path="/lembretes" element={<RemindersPage />}>
-                  <Route path="novo" element={<ReminderForm />} />
-                  <Route path="r/:id" element={<ReminderForm />} />
-                </Route>
-                <Route path="/habitos" element={<HabitsPage />} />
-                <Route path="/projetos" element={<ProjectsPage />} />
-                <Route path="/flashcards" element={<FlashcardsPage />} />
-              </Routes>
-            </main>
-          </div>
+          <HabitTimerProvider>
+            <div className={styles.layout}>
+              <TopNav />
+              <main className={styles.content}>
+                <Routes>
+                  <Route path="/" element={<Navigate to="/lembretes" replace />} />
+                  <Route path="/inicio" element={<DashboardPage />} />
+                  <Route path="/lembretes" element={<RemindersPage />}>
+                    <Route path="novo" element={<ReminderForm />} />
+                    <Route path="r/:id" element={<ReminderForm />} />
+                  </Route>
+                  <Route path="/habitos" element={<HabitsPage />} />
+                  <Route path="/projetos" element={<ProjectsPage />} />
+                  <Route path="/flashcards" element={<FlashcardsPage />} />
+                </Routes>
+              </main>
+            </div>
+          </HabitTimerProvider>
         </HeaderSlotProvider>
       </CalendarProvider>
     </BrowserRouter>

@@ -218,3 +218,42 @@
   width: 17px;
   height: 17px;
 }
+
+.caption {
+  gap: var(--spacing-sm);
+}
+
+.timer {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.timerActive {
+  color: var(--color-text-accent);
+  font-weight: var(--font-weight-semibold);
+}
+
+.stopButton {
+  height: 32px;
+  flex-shrink: 0;
+  padding: 0 var(--spacing-md);
+  pointer-events: auto;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  touch-action: pan-y;
+  animation: ring 1.2s ease-in-out infinite;
+}
+
+@keyframes ring {
+  50% {
+    box-shadow: 0 0 0 4px var(--color-accent-tint-strong);
+  }
+}
