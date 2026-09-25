@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { DayOfWeek, HabitFormData, HabitReminder } from "../../types/habit";
+import type { DayOfWeek, HabitFormData } from "../../types/habit";
 import { DEFAULT_ICON_KEY, ICON_LIBRARY } from "../../utils/iconLibrary";
 import { useDismiss } from "../../hooks/useDismiss";
 import { DaySelector } from "../DaySelector/DaySelector";
@@ -8,15 +8,10 @@ import { CloseIcon, MinusIcon, PlusIcon, TrashIcon } from "../Icon/icons";
 import styles from "./HabitForm.module.css";
 
 interface HabitFormProps {
-  /** Horários já salvos (modo edição). No modo criação ficam locais até salvar. */
-  reminders?: HabitReminder[];
-  habitId?: string | null;
-  onAddReminder?: (habitId: string, time: string) => void;
-  onRemoveReminder?: (reminderId: string) => void;
   mode: "create" | "edit";
   initialData?: HabitFormData;
   error?: string | null;
-  onSave: (data: HabitFormData, pendingTimes: string[]) => void;
+  onSave: (data: HabitFormData) => void;
   onClose: () => void;
   onDelete?: () => void;
 }
@@ -31,10 +26,6 @@ const MAX_DURATION = 600;
 export function HabitForm({
   mode,
   initialData,
-  reminders = [],
-  habitId = null,
-  onAddReminder,
-  onRemoveReminder,
   error,
   onSave,
   onClose,
@@ -52,27 +43,6 @@ export function HabitForm({
     () => ICON_LIBRARY.findIndex((entry) => entry.key === (initialData?.icon ?? "")) >= COLLAPSED_ICONS
   );
   const [dragY, setDragY] = useState(0);
-  // Modo criação: os horários ficam aqui até o hábito existir.
-  const [pendingTimes, setPendingTimes] = useState<string[]>([]);
-  const [newTime, setNewTime] = useState("");
-
-  const savedTimes = reminders.map((r) => r.time);
-  const times = habitId ? savedTimes : pendingTimes;
-  const atLimit = times.length >= targetCount;
-
-  function addTime() {
-    if (!newTime || atLimit || times.includes(newTime)) return;
-    if (habitId) onAddReminder?.(habitId, newTime);
-    else setPendingTimes((prev) => [...prev, newTime].sort());
-    setNewTime("");
-  }
-
-  function removeTime(time: string) {
-    const saved = reminders.find((r) => r.time === time);
-    if (saved) onRemoveReminder?.(saved.id);
-    else setPendingTimes((prev) => prev.filter((t) => t !== time));
-  }
-
   const inputRef = useRef<HTMLInputElement>(null);
   const dragStartRef = useRef<number | null>(null);
   const dragYRef = useRef(0);
@@ -89,7 +59,7 @@ export function HabitForm({
       setDaysError("Selecione pelo menos um dia");
       return;
     }
-    onSave({ name: name.trim(), icon, selectedDays, targetCount, durationMinutes }, pendingTimes);
+    onSave({ name: name.trim(), icon, selectedDays, targetCount, durationMinutes });
   }
 
   // Descer do primeiro passo desliga o timer; subir do desligado liga no primeiro passo.
@@ -232,54 +202,6 @@ export function HabitForm({
         </div>
 
         <DaySelector selectedDays={selectedDays} onChange={handleDaysChange} error={daysError} />
-
-        <div className={styles.field}>
-          <span className={styles.label}>Horários de aviso</span>
-          {times.length > 0 && (
-            <ul className={styles.timeList}>
-              {times.map((time, index) => (
-                <li
-                  key={time}
-                  className={`${styles.timeChip} ${index >= targetCount ? styles.timeChipOff : ""}`}
-                >
-                  <span className={styles.timeValue}>{time}</span>
-                  {index >= targetCount && <span className={styles.timeOffTag}>não notifica</span>}
-                  <button
-                    type="button"
-                    className={styles.timeRemove}
-                    aria-label={`Remover horário ${time}`}
-                    onClick={() => removeTime(time)}
-                  >
-                    <MinusIcon className={styles.timeRemoveIcon} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className={styles.timeAdd}>
-            <input
-              type="time"
-              className={styles.timeInput}
-              value={newTime}
-              onChange={(e) => setNewTime(e.target.value)}
-              disabled={atLimit}
-            />
-            <button
-              type="button"
-              className={styles.timeAddButton}
-              onClick={addTime}
-              disabled={!newTime || atLimit}
-            >
-              <PlusIcon className={styles.timeRemoveIcon} />
-              Adicionar
-            </button>
-          </div>
-          <span className={styles.timeHelp}>
-            {atLimit
-              ? `A meta de ${targetCount} permite ${targetCount} horário${targetCount === 1 ? "" : "s"}.`
-              : "O aviso insiste a cada 5 min por 25 min, ou até você dar o check."}
-          </span>
-        </div>
 
         <div className={styles.targetRow}>
           <span className={styles.targetText}>

@@ -1,9 +1,6 @@
 import { useEffect } from "react";
 import type { Habit, HabitFormData } from "../types/habit";
 import {
-  addHabitReminder,
-  removeHabitReminder,
-  skipHabitReminder,
   fetchHabits,
   createHabit as apiCreateHabit,
   updateHabit as apiUpdateHabit,
@@ -24,9 +21,6 @@ interface UseHabitsReturn {
   deleteHabit: (id: string) => Promise<void>;
   reorderHabits: (orderedIds: string[]) => Promise<void>;
   setCompletion: (habitId: string, date: string, count: number) => Promise<void>;
-  addReminder: (habitId: string, time: string) => Promise<void>;
-  removeReminder: (reminderId: string) => Promise<void>;
-  skipReminder: (reminderId: string, date: string, skipped: boolean) => Promise<void>;
   reload: () => void;
 }
 
@@ -109,38 +103,11 @@ export function useHabits(): UseHabitsReturn {
     }
   }
 
-  // Os botões da notificação agem fora do React: o service worker avisa as
-  // janelas abertas para a coluna de Hoje não ficar velha.
-  useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
-    const onMessage = (event: MessageEvent) => {
-      if (event.data?.type === "habit-updated") reload();
-    };
-    navigator.serviceWorker.addEventListener("message", onMessage);
-    return () => navigator.serviceWorker.removeEventListener("message", onMessage);
-  }, [reload]);
-
   // O fim de um timer registra o check pelo HabitTimerProvider, fora deste hook.
   useEffect(() => {
     window.addEventListener("habit-updated", reload);
     return () => window.removeEventListener("habit-updated", reload);
   }, [reload]);
-
-  function replace(updated: Habit): void {
-    setHabits((prev) => prev.map((h) => (h.id === updated.id ? recalculateHabitStats(updated) : h)));
-  }
-
-  async function addReminder(habitId: string, time: string): Promise<void> {
-    replace(await addHabitReminder(habitId, time));
-  }
-
-  async function removeReminder(reminderId: string): Promise<void> {
-    replace(await removeHabitReminder(reminderId));
-  }
-
-  async function skipReminder(reminderId: string, date: string, skipped: boolean): Promise<void> {
-    replace(await skipHabitReminder(reminderId, date, skipped));
-  }
 
   return {
     habits,
@@ -151,9 +118,6 @@ export function useHabits(): UseHabitsReturn {
     deleteHabit,
     reorderHabits,
     setCompletion,
-    addReminder,
-    removeReminder,
-    skipReminder,
     reload,
   };
 }

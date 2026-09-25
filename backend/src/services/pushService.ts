@@ -5,11 +5,7 @@ import * as pushSubscriptionModel from "../models/pushSubscriptionModel.js";
 export interface PushPayload {
   title: string;
   description: string;
-  /**
-   * Só lembretes preenchem `reminderId`. Um aparelho com o service worker antigo
-   * em cache cai no ramo de push de teste quando ele falta, em vez de postar em
-   * /api/reminders/<id> — é o contrato de compatibilidade dos avisos de hábito.
-   */
+  /** Ausente no push de teste: o service worker cai no ramo que não altera nada. */
   reminderId?: string;
   /**
    * `event_at` da ocorrência que gerou este aviso, em ISO. O botão "Concluir" o
@@ -17,10 +13,8 @@ export interface PushPayload {
    * push vai para todos os aparelhos e cada um deles pode tocar o mesmo botão.
    */
   occurrenceAt?: string;
-  kind?: "reminder" | "habit";
   /** Chave de coalescência na fila do serviço de push; vira o header `topic`. */
   collapseKey?: string;
-  habit?: { habitId: string; slotId: string; slotIndex: number; date: string };
   url?: string;
 }
 

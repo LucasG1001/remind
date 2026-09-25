@@ -8,7 +8,7 @@ import { useHeaderSlot } from "../../context/useHeaderSlot";
 import { HabitForm } from "../../components/HabitForm/HabitForm";
 import { TodayColumn } from "../../components/TodayColumn/TodayColumn";
 import { HistoryPanel } from "../../components/HistoryPanel/HistoryPanel";
-import { getToday, getTodayKey } from "../../utils/dateUtils";
+import { getToday } from "../../utils/dateUtils";
 import { alertApiError, apiErrorMessage } from "../../utils/apiError";
 import type { Habit, HabitFormData } from "../../types/habit";
 import styles from "./HabitsPage.module.css";
@@ -31,9 +31,6 @@ export function HabitsPage() {
     deleteHabit,
     reorderHabits,
     setCompletion,
-    addReminder,
-    removeReminder,
-    skipReminder,
   } = useHabits();
 
   const isMobile = useIsMobile();
@@ -67,20 +64,15 @@ export function HabitsPage() {
   }, [setSearchParams]);
 
   const handleSave = useCallback(
-    (data: HabitFormData, pendingTimes: string[]) => {
+    (data: HabitFormData) => {
       setFormError(null);
       const action =
-        formMode === "edit" && editing
-          ? updateHabit(editing.id, data)
-          : // Horários são sub-recurso: só dá para gravar depois que o hábito existe.
-            createHabit(data).then(async (created) => {
-              for (const time of pendingTimes) await addReminder(created.id, time);
-            });
+        formMode === "edit" && editing ? updateHabit(editing.id, data) : createHabit(data);
       action
         .then(closeForm)
         .catch((err) => setFormError(apiErrorMessage(err, "Não foi possível salvar o hábito.")));
     },
-    [formMode, editing, updateHabit, createHabit, addReminder, closeForm]
+    [formMode, editing, updateHabit, createHabit, closeForm]
   );
 
   const handleDelete = useCallback(
@@ -96,30 +88,6 @@ export function HabitsPage() {
         alertApiError(err, "Não foi possível atualizar o hábito.")
       ),
     [setCompletion]
-  );
-
-  const handleAddReminder = useCallback(
-    (habitId: string, time: string) =>
-      addReminder(habitId, time).catch((err) =>
-        setFormError(apiErrorMessage(err, "Não foi possível adicionar o horário."))
-      ),
-    [addReminder]
-  );
-
-  const handleRemoveReminder = useCallback(
-    (reminderId: string) =>
-      removeReminder(reminderId).catch((err) =>
-        setFormError(apiErrorMessage(err, "Não foi possível remover o horário."))
-      ),
-    [removeReminder]
-  );
-
-  const handleSkipReminder = useCallback(
-    (_habit: Habit, reminderId: string, skipped: boolean) =>
-      skipReminder(reminderId, getTodayKey(), skipped).catch((err) =>
-        alertApiError(err, "Não foi possível alterar o aviso.")
-      ),
-    [skipReminder]
   );
 
   const handleEdit = useCallback((habit: Habit) => {
@@ -166,7 +134,6 @@ export function HabitsPage() {
     <TodayColumn
       habits={habits}
       onToggle={handleToggle}
-      onSkipReminder={handleSkipReminder}
       onEdit={handleEdit}
       onReorder={handleReorder}
     />
@@ -223,10 +190,6 @@ export function HabitsPage() {
                 }
               : undefined
           }
-          reminders={editing?.reminders ?? []}
-          habitId={editing?.id ?? null}
-          onAddReminder={handleAddReminder}
-          onRemoveReminder={handleRemoveReminder}
           error={formError}
           onSave={handleSave}
           onClose={closeForm}

@@ -5,16 +5,6 @@ export interface HabitCompletion {
   locked: boolean;
 }
 
-export interface HabitReminder {
-  id: string;
-  time: string;
-  /** Índice na ordem por horário: é ele que decide se o aviso já foi cumprido. */
-  index: number;
-  /** Acima da meta: fica salvo mas não notifica. */
-  active: boolean;
-  skippedToday: boolean;
-}
-
 export interface Habit {
   id: string;
   name: string;
@@ -24,19 +14,9 @@ export interface Habit {
   /** Duração de uma sessão com timer; null = hábito só de check. */
   durationMinutes: number | null;
   completions: HabitCompletion[];
-  reminders: HabitReminder[];
-  /** Horário que o app oferece para desligar; resolvido no servidor. */
-  nextReminderId: string | null;
   position: number;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface HabitReminderRow {
-  id: string;
-  habit_id: string;
-  time: string;
-  skipped: boolean | null;
 }
 
 export interface HabitRow {

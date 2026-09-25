@@ -27,7 +27,6 @@ function findScroller(from: Element | null): Element {
 interface TodayColumnProps {
   habits: Habit[];
   onToggle: (habitId: string, dateKey: string, nextCount: number) => void;
-  onSkipReminder: (habit: Habit, reminderId: string, skipped: boolean) => void;
   onEdit: (habit: Habit) => void;
   onReorder: (orderedVisibleIds: string[]) => void;
 }
@@ -45,7 +44,7 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   month: "long",
 });
 
-export function TodayColumn({ habits, onToggle, onSkipReminder, onEdit, onReorder }: TodayColumnProps) {
+export function TodayColumn({ habits, onToggle, onEdit, onReorder }: TodayColumnProps) {
   const todayKey = getTodayKey();
 
   const entries = useMemo<Entry[]>(() => {
@@ -244,8 +243,6 @@ export function TodayColumn({ habits, onToggle, onSkipReminder, onEdit, onReorde
             const entry = entryById.get(id);
             if (!entry) return null;
             const { habit, count, target, completed } = entry;
-            const nextReminder =
-              habit.reminders.find((r) => r.id === habit.nextReminderId) ?? null;
             return (
               <TodayHabitCard
                 key={habit.id}
@@ -254,8 +251,6 @@ export function TodayColumn({ habits, onToggle, onSkipReminder, onEdit, onReorde
                 target={target}
                 completed={completed}
                 dragging={draggingId === habit.id}
-                nextReminderTime={nextReminder?.time ?? null}
-                nextReminderSkipped={nextReminder?.skippedToday ?? false}
                 onToggle={() => {
                   if (draggingRef.current) return;
                   onToggle(habit.id, todayKey, count >= target ? 0 : count + 1);
@@ -263,10 +258,6 @@ export function TodayColumn({ habits, onToggle, onSkipReminder, onEdit, onReorde
                 onUndo={() => {
                   if (draggingRef.current) return;
                   onToggle(habit.id, todayKey, Math.max(0, count - 1));
-                }}
-                onSkipReminder={() => {
-                  if (draggingRef.current || !nextReminder) return;
-                  onSkipReminder(habit, nextReminder.id, !nextReminder.skippedToday);
                 }}
                 onEdit={() => {
                   if (draggingRef.current || movedRef.current) return;

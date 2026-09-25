@@ -1,9 +1,6 @@
 import {
   completionCountSchema,
   createHabitSchema,
-  habitReminderSchema,
-  reminderCompleteSchema,
-  reminderSkipSchema,
   reorderHabitsSchema,
   updateHabitSchema,
 } from "../schemas/habit.js";
@@ -12,7 +9,6 @@ import { asyncHandler } from "../lib/asyncHandler.js";
 import { calendarDateSchema, parseBody, requireUuid } from "../lib/validation.js";
 
 const HABIT_NOT_FOUND = "Hábito não encontrado.";
-const REMINDER_NOT_FOUND = "Horário de aviso não encontrado.";
 
 export const getAll = asyncHandler("Erro ao buscar hábitos.", async (_req, res) => {
   const habits = await habitModel.findAll();
@@ -102,68 +98,4 @@ export const incrementCompletion = asyncHandler("Erro ao registrar a sessão.", 
     return;
   }
   res.json(habit);
-});
-
-export const addReminder = asyncHandler("Erro ao adicionar horário.", async (req, res) => {
-  const id = String(req.params.id);
-  if (!requireUuid(res, id, HABIT_NOT_FOUND)) return;
-  const body = parseBody(res, habitReminderSchema, req.body);
-  if (!body) return;
-
-  const ok = await habitModel.addReminder(id, body.time);
-  if (!ok) {
-    res.status(404).json({ error: HABIT_NOT_FOUND });
-    return;
-  }
-  res.status(201).json(await habitModel.findById(id));
-});
-
-export const removeReminder = asyncHandler("Erro ao remover horário.", async (req, res) => {
-  const reminderId = String(req.params.reminderId);
-  if (!requireUuid(res, reminderId, REMINDER_NOT_FOUND)) return;
-
-  const habitId = await habitModel.removeReminder(reminderId);
-  if (!habitId) {
-    res.status(404).json({ error: REMINDER_NOT_FOUND });
-    return;
-  }
-  res.json(await habitModel.findById(habitId));
-});
-
-export const skipReminder = asyncHandler("Erro ao desligar o aviso.", async (req, res) => {
-  const reminderId = String(req.params.reminderId);
-  if (!requireUuid(res, reminderId, REMINDER_NOT_FOUND)) return;
-  const body = parseBody(res, reminderSkipSchema, req.body);
-  if (!body) return;
-
-  const habitId = await habitModel.setReminderSkipped(reminderId, body.date, body.skipped);
-  if (!habitId) {
-    res.status(404).json({ error: REMINDER_NOT_FOUND });
-    return;
-  }
-  res.json(await habitModel.findById(habitId));
-});
-
-/** Alvo do botão "Concluir" da notificação: idempotente por horário. */
-export const completeReminder = asyncHandler("Erro ao concluir o hábito.", async (req, res) => {
-  const id = String(req.params.id);
-  if (!requireUuid(res, id, HABIT_NOT_FOUND)) return;
-  const body = parseBody(res, reminderCompleteSchema, req.body);
-  if (!body) return;
-
-  // O índice vem do servidor sempre que o payload trouxe o slotId: o índice do push
-  // envelhece, e um índice fora da lista marcaria o dia inteiro como concluído.
-  const slotIds = await habitModel.reminderSlotIds(id);
-  const slotIndex = body.slotId ? slotIds.indexOf(body.slotId) : body.slotIndex;
-  if (slotIndex < 0 || slotIndex >= slotIds.length) {
-    res.status(404).json({ error: REMINDER_NOT_FOUND });
-    return;
-  }
-
-  const count = await habitModel.satisfyReminderSlot(id, slotIndex, body.date);
-  if (count === null) {
-    res.status(404).json({ error: HABIT_NOT_FOUND });
-    return;
-  }
-  res.json({ count });
 });

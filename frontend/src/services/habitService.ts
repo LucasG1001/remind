@@ -1,4 +1,4 @@
-import { del, delJson, get, patch, post, put } from "./api";
+import { del, get, patch, post, put } from "./api";
 import type { Habit, HabitFormData } from "../types/habit";
 
 export function fetchHabits(): Promise<Habit[]> {
@@ -19,18 +19,6 @@ export function reorderHabits(order: string[]): Promise<Habit[]> {
 
 export function deleteHabit(id: string): Promise<void> {
   return del(`/api/habits/${id}`);
-}
-
-export function addHabitReminder(habitId: string, time: string): Promise<Habit> {
-  return post<Habit>(`/api/habits/${habitId}/reminders`, { time });
-}
-
-export function removeHabitReminder(reminderId: string): Promise<Habit> {
-  return delJson<Habit>(`/api/habits/reminders/${reminderId}`);
-}
-
-export function skipHabitReminder(reminderId: string, date: string, skipped: boolean): Promise<Habit> {
-  return post<Habit>(`/api/habits/reminders/${reminderId}/skip`, { skipped, date });
 }
 
 export function setHabitCompletion(habitId: string, date: string, count: number): Promise<Habit> {

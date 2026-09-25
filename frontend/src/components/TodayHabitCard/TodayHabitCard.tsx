@@ -6,7 +6,7 @@ import {
 } from "react";
 import type { Habit } from "../../types/habit";
 import { getIcon } from "../../utils/iconLibrary";
-import { BellIcon, BellOffIcon, CloseIcon, MinusIcon, PauseIcon, PlayIcon } from "../Icon/icons";
+import { CloseIcon, MinusIcon, PauseIcon, PlayIcon } from "../Icon/icons";
 import { useHabitTimer } from "../../context/useHabitTimer";
 import { formatRemaining } from "../../utils/habitTimer";
 import { getLevelColor } from "../../utils/levelUtils";
@@ -33,12 +33,8 @@ interface TodayHabitCardProps {
   target: number;
   completed: boolean;
   dragging: boolean;
-  /** Horário pendente de hoje; null quando não há aviso a desligar. */
-  nextReminderTime: string | null;
-  nextReminderSkipped: boolean;
   onToggle: () => void;
   onUndo: () => void;
-  onSkipReminder: () => void;
   onEdit: () => void;
   onPointerDown: (e: ReactPointerEvent) => void;
   onPointerMove: (e: ReactPointerEvent) => void;
@@ -52,11 +48,8 @@ export function TodayHabitCard({
   target,
   completed,
   dragging,
-  nextReminderTime,
-  nextReminderSkipped,
   onToggle,
   onUndo,
-  onSkipReminder,
   onEdit,
   onPointerDown,
   onPointerMove,
@@ -204,28 +197,6 @@ export function TodayHabitCard({
             onClick={keyboardOnly(onUndo)}
           >
             <MinusIcon className={styles.sideIcon} />
-          </button>
-        )}
-
-        {nextReminderTime && (
-          <button
-            type="button"
-            data-role="habit-check"
-            className={`${styles.sideButton} ${nextReminderSkipped ? styles.sideButtonOff : ""}`}
-            aria-label={
-              nextReminderSkipped
-                ? `Reativar o aviso das ${nextReminderTime} de ${habit.name}`
-                : `Desligar o aviso das ${nextReminderTime} de ${habit.name}`
-            }
-            title={`Aviso das ${nextReminderTime}`}
-            onPointerUp={onSkipReminder}
-            onClick={keyboardOnly(onSkipReminder)}
-          >
-            {nextReminderSkipped ? (
-              <BellOffIcon className={styles.sideIcon} />
-            ) : (
-              <BellIcon className={styles.sideIcon} />
-            )}
           </button>
         )}
 

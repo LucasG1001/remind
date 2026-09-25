@@ -117,34 +117,9 @@ export async function migrate(): Promise<void> {
     END $$;
   `);
 
-  // Horários de aviso do hábito. Sem coluna de posição: a ordem é o `time`, e o
-  // índice do horário nessa ordem é a chave que decide se ele já foi cumprido.
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS habit_reminders (
-      id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      habit_id   UUID NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
-      time       TEXT NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      UNIQUE(habit_id, time)
-    );
-  `);
-
-  // Estado do dia, criado sob demanda: ausência de linha É o estado limpo, então
-  // não existe rotina de reset em lugar nenhum (nem corrida na virada do dia).
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS habit_reminder_runtime (
-      habit_reminder_id UUID NOT NULL REFERENCES habit_reminders(id) ON DELETE CASCADE,
-      date              TEXT NOT NULL,
-      skipped           BOOLEAN NOT NULL DEFAULT FALSE,
-      last_sent_at      TIMESTAMPTZ,
-      PRIMARY KEY (habit_reminder_id, date)
-    );
-  `);
-
-  await pool.query(`
-    DELETE FROM habit_reminder_runtime
-     WHERE date < to_char((NOW() AT TIME ZONE 'America/Sao_Paulo') - INTERVAL '7 days', 'YYYY-MM-DD');
-  `);
+  // Avisos por push de hábito foram removidos; runtime primeiro por causa da FK.
+  await pool.query(`DROP TABLE IF EXISTS habit_reminder_runtime`);
+  await pool.query(`DROP TABLE IF EXISTS habit_reminders`);
 
   await pool.query(`ALTER TABLE habits DROP COLUMN IF EXISTS current_streak`);
   await pool.query(`ALTER TABLE habits DROP COLUMN IF EXISTS longest_streak`);

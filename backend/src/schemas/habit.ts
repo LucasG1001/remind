@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { calendarDateSchema, timeSchema } from "../lib/validation.js";
 
 const targetCount = z
   .number({ error: "Informe a meta de vezes por dia." })
@@ -34,24 +33,6 @@ export const updateHabitSchema = baseHabit.extend({ targetCount, durationMinutes
 
 export const completionCountSchema = z.object({
   count: z.number().int().min(0, "Contagem inválida."),
-});
-
-export const habitReminderSchema = z.object({ time: timeSchema });
-
-export const reminderSkipSchema = z.object({
-  skipped: z.boolean(),
-  date: calendarDateSchema,
-});
-
-export const reminderCompleteSchema = z.object({
-  /**
-   * Horário que gerou o aviso. Quem manda é ele, não o `slotIndex`: a chave do
-   * "cumprido" é a posição na ordem por `time`, e adicionar um horário mais cedo
-   * entre o envio do push e o toque desloca todos os índices.
-   */
-  slotId: z.string().uuid("ID inválido.").optional(),
-  slotIndex: z.number().int().min(0, "Índice inválido."),
-  date: calendarDateSchema,
 });
 
 export const reorderHabitsSchema = z.object({

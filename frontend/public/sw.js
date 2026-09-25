@@ -6,16 +6,10 @@ const BADGE = "/badge-96.png";
 const DEFAULT_URL = "/lembretes";
 
 // O Chrome no Android renderiza no máximo 2 botões (Notification.maxActions).
-const ACTIONS = {
-  reminder: [
-    { action: "snooze-15", title: "Soneca 15 min" },
-    { action: "done", title: "Concluir" },
-  ],
-  habit: [
-    { action: "habit-skip", title: "Pular" },
-    { action: "habit-done", title: "Concluir" },
-  ],
-};
+const ACTIONS = [
+  { action: "snooze-15", title: "Soneca 15 min" },
+  { action: "done", title: "Concluir" },
+];
 
 const FALLBACK = {
   title: "RemindMe",
@@ -65,8 +59,6 @@ function readPayload(event) {
   }
 }
 
-// `data.url` também aqui: sem isso o clique na confirmação de um hábito cairia no
-// fallback do notificationclick e abriria /lembretes.
 function notify(title, body, tag, url) {
   return self.registration.showNotification(title, {
     body,
@@ -108,51 +100,19 @@ async function notifyClients(message) {
   }
 }
 
-async function handleHabitAction(action, habit, tag, url) {
-  // switch explícito, como nos lembretes: um catch-all fazia qualquer ação
-  // desconhecida (service worker velho recebendo payload novo) registrar um check.
-  switch (action) {
-    case "habit-skip":
-      await postJson(`/api/habits/reminders/${habit.slotId}/skip`, { skipped: true, date: habit.date });
-      await notifyClients({ type: "habit-updated", habitId: habit.habitId, action });
-      await notify("🔕 Aviso desligado", "Não insisto mais neste horário hoje.", tag, url);
-      return;
-    // Idempotente no servidor: o push vai para todos os aparelhos, e esta
-    // notificação pode ser tocada duas vezes ou minutos depois do check no app.
-    case "habit-done":
-      await postJson(`/api/habits/${habit.habitId}/reminders/complete`, {
-        // O servidor resolve o índice pelo slotId: entre este push e o toque o
-        // usuário pode ter adicionado um horário mais cedo, deslocando os índices.
-        slotId: habit.slotId,
-        slotIndex: habit.slotIndex,
-        date: habit.date,
-      });
-      await notifyClients({ type: "habit-updated", habitId: habit.habitId, action });
-      await notify("✅ Check registrado", "Mandou bem. 🙂", tag, url);
-      return;
-    default:
-      return;
-  }
-}
-
 async function handleAction(action, data) {
-  const { kind, reminderId, habit } = data;
+  const { reminderId } = data;
   const url = data.url ?? DEFAULT_URL;
-  const tag = kind === "habit" ? `habit:${habit?.habitId}` : reminderId ?? "remindme";
+  const tag = reminderId ?? "remindme";
 
-  // Payload sem o alvo da ação (push de teste, ou SW velho lendo um payload novo):
-  // sem esta guarda o `habit` nulo estouraria dentro do try e o catch reportaria
-  // falta de conexão com a rede perfeita.
-  if (kind === "habit" ? !habit : !reminderId) {
+  // Payload sem o alvo da ação (push de teste, ou um aviso de hábito antigo ainda
+  // na bandeja): nada a alterar no servidor.
+  if (!reminderId) {
     await notify("✅ Botão funcionando", "Era um push de teste — nada foi alterado.", tag, url);
     return;
   }
 
   try {
-    if (kind === "habit") {
-      await handleHabitAction(action, habit, tag, url);
-      return;
-    }
     // switch explícito: um `else` catch-all faria qualquer ação desconhecida
     // concluir o lembrete.
     switch (action) {
@@ -182,11 +142,8 @@ async function handleAction(action, data) {
 // isso o Android mostra "site atualizado em segundo plano" e pode cassar a permissão.
 self.addEventListener("push", (event) => {
   const payload = readPayload(event);
-  const kind = payload.kind === "habit" ? "habit" : "reminder";
-  // tag por entidade: os avisos insistentes substituem o anterior em vez de
-  // empilhar, e um hábito nunca colapsa em cima de outro.
-  const tag =
-    kind === "habit" ? `habit:${payload.habit?.habitId}` : payload.reminderId ?? "remindme";
+  // tag por lembrete: os avisos insistentes substituem o anterior em vez de empilhar.
+  const tag = payload.reminderId ?? "remindme";
   event.waitUntil(
     self.registration.showNotification(payload.title, {
       body: payload.description,
@@ -195,12 +152,10 @@ self.addEventListener("push", (event) => {
       tag,
       renotify: true,
       vibrate: [200, 100, 200],
-      actions: ACTIONS[kind],
+      actions: ACTIONS,
       data: {
-        kind,
         reminderId: payload.reminderId ?? null,
         occurrenceAt: payload.occurrenceAt ?? null,
-        habit: payload.habit ?? null,
         url: payload.url ?? DEFAULT_URL,
       },
     })
