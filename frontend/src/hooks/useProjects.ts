@@ -158,8 +158,8 @@ export function useProjects() {
     [currentProjectId]
   );
 
-  const createCard = useCallback(async (listId: string, title: string) => {
-    const created = await apiCreateCard(listId, title);
+  const createCard = useCallback(async (listId: string, title: string, tagIds: string[] = []) => {
+    const created = await apiCreateCard(listId, title, tagIds);
     setBoard((prev) =>
       prev ? prev.map((l) => (l.id === listId ? { ...l, cards: [...l.cards, created] } : l)) : prev
     );

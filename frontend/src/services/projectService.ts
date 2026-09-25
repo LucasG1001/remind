@@ -45,8 +45,8 @@ export function reorderLists(projectId: string, order: string[]): Promise<Projec
   return post<ProjectBoard>(`/api/projects/${projectId}/lists/reorder`, { order });
 }
 
-export function createCard(listId: string, title: string): Promise<Card> {
-  return post<Card>(`/api/projects/lists/${listId}/cards`, { title });
+export function createCard(listId: string, title: string, tagIds: string[] = []): Promise<Card> {
+  return post<Card>(`/api/projects/lists/${listId}/cards`, { title, tagIds });
 }
 
 export function updateCard(cardId: string, patch: CardPatch): Promise<Card> {

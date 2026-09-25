@@ -65,10 +65,11 @@
 }
 
 .day {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 28px;
+  height: 32px;
   border-radius: 6px;
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
@@ -84,20 +85,77 @@ button.day {
   color: var(--color-neutral-700);
 }
 
-.dayMarked {
-  background: var(--color-surface);
-  color: var(--color-accent-300);
-}
-
-.dayPast {
-  background: var(--color-error-bg-faint);
-  color: var(--color-error);
+.dayHoliday {
+  background: var(--color-warning-subtle);
+  color: var(--color-text-primary);
 }
 
 .dayToday {
   background: var(--color-accent);
   color: var(--color-on-accent);
   font-weight: var(--font-weight-medium);
+}
+
+button.day:hover {
+  background: var(--color-bg-hover);
+}
+
+button.dayToday:hover {
+  background: var(--color-accent);
+}
+
+.badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 9px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  box-shadow: 0 0 6px var(--color-accent-glow);
+}
+
+.badgePast {
+  background: var(--color-error);
+  box-shadow: none;
+}
+
+.dayToday .badge {
+  background: var(--color-on-accent);
+  color: var(--color-accent);
+  box-shadow: none;
+}
+
+.holidayDot {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-warning);
+}
+
+.dayToday .holidayDot {
+  background: var(--color-on-accent);
+}
+
+.holidaysEmpty {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.holidayPast {
+  opacity: 0.5;
 }
 
 .holidaysTitle {

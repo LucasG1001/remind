@@ -121,7 +121,7 @@ export const createCard = asyncHandler("Erro ao criar cartão.", async (req, res
   if (!requireUuid(res, listId, LIST_NOT_FOUND)) return;
   const body = parseBody(res, createCardSchema, req.body);
   if (!body) return;
-  const card = await projectModel.createCard(listId, body.title);
+  const card = await projectModel.createCard(listId, body.title, body.tagIds);
   if (!card) {
     res.status(404).json({ error: LIST_NOT_FOUND });
     return;

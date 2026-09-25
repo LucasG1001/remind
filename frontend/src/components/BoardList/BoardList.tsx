@@ -2,16 +2,20 @@ import { useEffect, useRef, useState } from "react";
 import type { BoardList, Card, ProjectTag } from "../../types/project";
 import { BoardCard } from "../BoardCard/BoardCard";
 import { InlineTextEdit } from "../InlineTextEdit/InlineTextEdit";
+import { TagQuickPicker } from "../TagQuickPicker/TagQuickPicker";
 import { useAutoGrow } from "../../hooks/useAutoGrow";
+import { toggleTagId } from "../../utils/tagPalette";
 import styles from "./BoardList.module.css";
 
 interface AddCardComposerProps {
-  onAdd: (title: string) => void;
+  tags: ProjectTag[];
+  onAdd: (title: string, tagIds: string[]) => void;
   onClose: () => void;
 }
 
-function AddCardComposer({ onAdd, onClose }: AddCardComposerProps) {
+function AddCardComposer({ tags, onAdd, onClose }: AddCardComposerProps) {
   const [draft, setDraft] = useState("");
+  const [tagIds, setTagIds] = useState<string[]>([]);
   const fieldRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -22,7 +26,7 @@ function AddCardComposer({ onAdd, onClose }: AddCardComposerProps) {
 
   const submit = (keepOpen: boolean) => {
     const title = draft.trim();
-    if (title) onAdd(title);
+    if (title) onAdd(title, tagIds);
     setDraft("");
     if (keepOpen) fieldRef.current?.focus();
     else onClose();
@@ -50,6 +54,11 @@ function AddCardComposer({ onAdd, onClose }: AddCardComposerProps) {
         }}
         onBlur={() => submit(false)}
       />
+      <TagQuickPicker
+        tags={tags}
+        selected={tagIds}
+        onToggle={(id) => setTagIds((prev) => toggleTagId(prev, id))}
+      />
     </div>
   );
 }
@@ -65,16 +74,20 @@ interface BoardListColumnProps {
   listDropTarget: boolean;
   renaming: boolean;
   composerOpen: boolean;
+  editingCardId: string | null;
   onHeaderPointerDown: (e: React.PointerEvent, listId: string) => void;
   onRenameCommit: (listId: string, name: string) => void;
   onRenameCancel: () => void;
   onDeleteList: (list: BoardList) => void;
   onOpenComposer: (listId: string) => void;
   onCloseComposer: () => void;
-  onAddCard: (listId: string, title: string) => void;
+  onAddCard: (listId: string, title: string, tagIds: string[]) => void;
   onCardPointerDown: (e: React.PointerEvent, card: Card) => void;
   onToggleDone: (card: Card) => void;
   onDeleteCard: (card: Card) => void;
+  onEditCommit: (card: Card, title: string, tagIds: string[]) => void;
+  onEditCancel: () => void;
+  onOpenCardMenu: (card: Card, x: number, y: number) => void;
 }
 
 export function BoardListColumn({
@@ -88,6 +101,7 @@ export function BoardListColumn({
   listDropTarget,
   renaming,
   composerOpen,
+  editingCardId,
   onHeaderPointerDown,
   onRenameCommit,
   onRenameCancel,
@@ -98,6 +112,9 @@ export function BoardListColumn({
   onCardPointerDown,
   onToggleDone,
   onDeleteCard,
+  onEditCommit,
+  onEditCancel,
+  onOpenCardMenu,
 }: BoardListColumnProps) {
   return (
     <section
@@ -151,16 +168,24 @@ export function BoardListColumn({
             tags={tags}
             dragging={dragCardId === card.id}
             dropTarget={dropCardId === card.id}
+            editing={editingCardId === card.id}
             onPointerDown={onCardPointerDown}
             onToggleDone={onToggleDone}
             onDelete={onDeleteCard}
+            onEditCommit={onEditCommit}
+            onEditCancel={onEditCancel}
+            onOpenMenu={onOpenCardMenu}
           />
         ))}
       </div>
 
       <footer className={styles.footer}>
         {composerOpen ? (
-          <AddCardComposer onAdd={(title) => onAddCard(list.id, title)} onClose={onCloseComposer} />
+          <AddCardComposer
+            tags={tags}
+            onAdd={(title, tagIds) => onAddCard(list.id, title, tagIds)}
+            onClose={onCloseComposer}
+          />
         ) : (
           <button type="button" className={styles.addCard} onClick={() => onOpenComposer(list.id)}>
             + Adicionar cartão

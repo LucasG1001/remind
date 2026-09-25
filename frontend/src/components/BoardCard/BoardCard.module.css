@@ -31,6 +31,15 @@
 
 .editing {
   cursor: text;
+  border-color: var(--color-accent);
+}
+
+.editor {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
 }
 
 .content {
@@ -132,6 +141,34 @@
 @media (hover: none) {
   .delete {
     opacity: 0.6;
+  }
+}
+
+.more {
+  display: none;
+  flex-shrink: 0;
+  min-width: 28px;
+  height: 24px;
+  margin: -2px -4px 0 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  line-height: 1;
+}
+
+.more:active {
+  background: var(--color-bg-hover);
+}
+
+@media (max-width: 768px) {
+  .delete {
+    display: none;
+  }
+
+  .more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 

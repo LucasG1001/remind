@@ -8,6 +8,7 @@ import { InlineTextEdit } from "../../components/InlineTextEdit/InlineTextEdit";
 import { CardDetailPanel } from "../../components/CardDetailPanel/CardDetailPanel";
 import { ProjectTagModal } from "../../components/ProjectTagModal/ProjectTagModal";
 import { TagChip } from "../../components/TagChip/TagChip";
+import { CardMenu } from "../../components/CardMenu/CardMenu";
 import { moveCardInBoard, moveRelativeTo } from "../../utils/reorder";
 import { LONG_PRESS_DRAG_MS, MOVE_THRESHOLD } from "../../hooks/useLongPress";
 import { useHeaderSlot } from "../../context/useHeaderSlot";
@@ -76,6 +77,8 @@ export function ProjectsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [detailCardId, setDetailCardId] = useState<string | null>(null);
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [cardMenu, setCardMenu] = useState<{ card: Card; x: number; y: number } | null>(null);
   const [renamingListId, setRenamingListId] = useState<string | null>(null);
   const [composerListId, setComposerListId] = useState<string | null>(null);
   const [addingList, setAddingList] = useState(false);
@@ -452,7 +455,7 @@ export function ProjectsPage() {
   };
 
   const handleCardPointerDown = (e: React.PointerEvent, card: Card) => {
-    beginPress(e, card.id, "card", () => setDetailCardId(card.id));
+    beginPress(e, card.id, "card", () => setEditingCardId(card.id));
   };
 
   const handleHeaderPointerDown = (e: React.PointerEvent, listId: string) => {
@@ -461,6 +464,13 @@ export function ProjectsPage() {
 
   const handleSaveCardDetail = (card: Card, patch: CardPatch) => {
     updateCard(card.id, patch).catch((err) => alertApiError(err, "Não foi possível salvar o cartão."));
+  };
+
+  const handleEditCommit = (card: Card, title: string, tagIds: string[]) => {
+    setEditingCardId(null);
+    updateCard(card.id, { title, tagIds }).catch((err) =>
+      alertApiError(err, "Não foi possível salvar o cartão.")
+    );
   };
 
   const handleToggleDone = (card: Card) => {
@@ -474,8 +484,8 @@ export function ProjectsPage() {
     deleteCard(card.id).catch((err) => alertApiError(err, "Não foi possível excluir o cartão."));
   };
 
-  const handleAddCard = (listId: string, title: string) => {
-    createCard(listId, title).catch((err) => alertApiError(err, "Não foi possível criar o cartão."));
+  const handleAddCard = (listId: string, title: string, tagIds: string[]) => {
+    createCard(listId, title, tagIds).catch((err) => alertApiError(err, "Não foi possível criar o cartão."));
   };
 
   const handleRenameList = (listId: string, name: string) => {
@@ -633,6 +643,7 @@ export function ProjectsPage() {
                   listDropTarget={listDrop?.overListId === list.id}
                   renaming={renamingListId === list.id}
                   composerOpen={activeComposerListId === list.id}
+                  editingCardId={editingCardId}
                   onHeaderPointerDown={handleHeaderPointerDown}
                   onRenameCommit={handleRenameList}
                   onRenameCancel={() => setRenamingListId(null)}
@@ -646,6 +657,9 @@ export function ProjectsPage() {
                   onCardPointerDown={handleCardPointerDown}
                   onToggleDone={handleToggleDone}
                   onDeleteCard={handleDeleteCard}
+                  onEditCommit={handleEditCommit}
+                  onEditCancel={() => setEditingCardId(null)}
+                  onOpenCardMenu={(card, x, y) => setCardMenu({ card, x, y })}
                 />
               ))}
 
@@ -687,6 +701,16 @@ export function ProjectsPage() {
         >
           {ghost.title}
         </div>
+      )}
+
+      {cardMenu && (
+        <CardMenu
+          x={cardMenu.x}
+          y={cardMenu.y}
+          onEdit={() => setDetailCardId(cardMenu.card.id)}
+          onRemove={() => handleDeleteCard(cardMenu.card)}
+          onClose={() => setCardMenu(null)}
+        />
       )}
 
       {detailCard && (

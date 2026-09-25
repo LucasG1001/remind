@@ -12,14 +12,20 @@ import { WEEKDAY_ABBR_PT, WEEKDAY_LETTERS } from "../../utils/weekdays";
 import { getHolidays } from "../../utils/holidays";
 import { useMonthGrid } from "../../hooks/useMonthGrid";
 import { useCalendar } from "../../context/useCalendar";
+import { MONTH_PT } from "../../utils/month";
 import { ChevronIcon } from "../Icon/icons";
 import type { Reminder } from "../../types/reminder";
 import styles from "./RemindersRail.module.css";
 
-const HOLIDAY_COUNT = 5;
+function holidayCountLabel(daysLeft: number): string {
+  if (daysLeft === 0) return "hoje";
+  const n = Math.abs(daysLeft);
+  const unit = `${n} dia${n === 1 ? "" : "s"}`;
+  return daysLeft > 0 ? unit : `há ${unit}`;
+}
 
 export function RemindersRail({ reminders, now }: { reminders: Reminder[]; now: number }) {
-  const { goPrev, goNext, monthLabel, firstDayOffset, days } = useMonthGrid();
+  const { view, goPrev, goNext, monthLabel, firstDayOffset, days } = useMonthGrid();
   const { open: openCalendar } = useCalendar();
 
   const today = getToday();
@@ -27,12 +33,11 @@ export function RemindersRail({ reminders, now }: { reminders: Reminder[]; now: 
 
   const byDay = useMemo(() => groupRemindersByDay(reminders), [reminders]);
 
-  const holidays = useMemo(() => {
-    const year = Number(todayKey.slice(0, 4));
-    return [...getHolidays(year), ...getHolidays(year + 1)]
-      .filter((h) => h.dateKey >= todayKey)
-      .slice(0, HOLIDAY_COUNT);
-  }, [todayKey]);
+  const holidays = useMemo(
+    () => getHolidays(view.year).filter((h) => Number(h.dateKey.slice(5, 7)) - 1 === view.month),
+    [view],
+  );
+  const holidayByDay = useMemo(() => new Map(holidays.map((h) => [h.dateKey, h])), [holidays]);
 
   return (
     <div className={styles.rail}>
@@ -73,34 +78,46 @@ export function RemindersRail({ reminders, now }: { reminders: Reminder[]; now: 
           {days.map((date) => {
             const key = formatDateKey(date);
             const count = byDay.get(key)?.length ?? 0;
+            const holiday = holidayByDay.get(key);
             const isToday = isSameDay(date, today);
             const past = key < todayKey;
             const cellClass = [
               styles.day,
               isToday ? styles.dayToday : "",
-              !isToday && count > 0 && past ? styles.dayPast : "",
-              !isToday && count > 0 && !past ? styles.dayMarked : "",
-              !isToday && count === 0 && past ? styles.dayEmptyPast : "",
+              !isToday && holiday ? styles.dayHoliday : "",
+              !isToday && !holiday && past ? styles.dayEmptyPast : "",
             ]
               .filter(Boolean)
               .join(" ");
+            const marks = (
+              <>
+                {date.getDate()}
+                {count > 0 && (
+                  <span className={`${styles.badge} ${past ? styles.badgePast : ""}`}>
+                    {count > 9 ? "9+" : count}
+                  </span>
+                )}
+                {holiday && <span className={styles.holidayDot} />}
+              </>
+            );
 
             if (count === 0) {
               return (
-                <span key={key} className={cellClass}>
-                  {date.getDate()}
+                <span key={key} className={cellClass} title={holiday?.name}>
+                  {marks}
                 </span>
               );
             }
+            const title = `${count} lembrete${count === 1 ? "" : "s"}`;
             return (
               <button
                 key={key}
                 type="button"
                 className={cellClass}
                 onClick={openCalendar}
-                title={`${count} lembrete${count === 1 ? "" : "s"}`}
+                title={holiday ? `${holiday.name} · ${title}` : title}
               >
-                {date.getDate()}
+                {marks}
               </button>
             );
           })}
@@ -108,13 +125,17 @@ export function RemindersRail({ reminders, now }: { reminders: Reminder[]; now: 
       </section>
 
       <section className={styles.holidays}>
-        <h3 className={styles.holidaysTitle}>Próximos feriados</h3>
+        <h3 className={styles.holidaysTitle}>Feriados de {MONTH_PT[view.month]!.toLowerCase()}</h3>
+        {holidays.length === 0 && <p className={styles.holidaysEmpty}>Nenhum feriado neste mês.</p>}
         {holidays.map((holiday) => {
           const date = parseDate(holiday.dateKey);
           const weekday = date.getDay();
           const daysLeft = diffDaysFromToday(date.getTime(), now);
           return (
-            <div key={holiday.dateKey} className={styles.holiday}>
+            <div
+              key={holiday.dateKey}
+              className={`${styles.holiday} ${daysLeft < 0 ? styles.holidayPast : ""}`}
+            >
               <span className={styles.holidayWhen}>
                 <span
                   className={`${styles.holidayDow} ${
@@ -134,7 +155,7 @@ export function RemindersRail({ reminders, now }: { reminders: Reminder[]; now: 
                 )}
               </span>
               <span className={styles.holidayCount}>
-                {daysLeft === 0 ? "hoje" : `${daysLeft} dia${daysLeft === 1 ? "" : "s"}`}
+                {holidayCountLabel(daysLeft)}
               </span>
             </div>
           );

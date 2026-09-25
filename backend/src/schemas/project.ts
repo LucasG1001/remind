@@ -39,7 +39,7 @@ export const createListSchema = z.object({ name });
 
 export const updateListSchema = createListSchema;
 
-export const createCardSchema = z.object({ title: cardTitle });
+export const createCardSchema = z.object({ title: cardTitle, tagIds: cardTagIds.optional() });
 
 export const updateCardSchema = z.object({
   title: cardTitle.optional(),

@@ -216,7 +216,7 @@ export async function reorderLists(projectId: string, orderedIds: string[]): Pro
   return findBoard(projectId);
 }
 
-export async function createCard(listId: string, title: string): Promise<Card | null> {
+export async function createCard(listId: string, title: string, tagIds: string[] = []): Promise<Card | null> {
   const list = await pool.query("SELECT id FROM board_lists WHERE id = $1", [listId]);
   if (!list.rows[0]) return null;
 
@@ -226,7 +226,17 @@ export async function createCard(listId: string, title: string): Promise<Card | 
      RETURNING *`,
     [listId, title]
   );
-  return toCard(result.rows[0]!, []);
+  const row = result.rows[0]!;
+  if (tagIds.length === 0) return toCard(row, []);
+  try {
+    await syncCardTags(row.id, tagIds);
+  } catch (err) {
+    // O cliente recebe erro e não põe o cartão no quadro: mantido, ele reapareceria só no reload.
+    await pool.query("DELETE FROM cards WHERE id = $1", [row.id]);
+    throw err;
+  }
+  const tagIdsByCard = await loadCardTagIds("c.id = $1", [row.id]);
+  return toCard(row, tagIdsByCard.get(row.id) ?? []);
 }
 
 // Substitui o conjunto de tags do cartão. Retorna false quando o cartão não existe

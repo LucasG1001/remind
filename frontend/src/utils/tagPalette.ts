@@ -19,3 +19,7 @@ export function resolveTags(tags: ProjectTag[], tagIds: string[]): ProjectTag[] 
     .map((id) => tags.find((tag) => tag.id === id))
     .filter((tag): tag is ProjectTag => Boolean(tag));
 }
+
+export function toggleTagId(tagIds: string[], tagId: string): string[] {
+  return tagIds.includes(tagId) ? tagIds.filter((id) => id !== tagId) : [...tagIds, tagId];
+}
